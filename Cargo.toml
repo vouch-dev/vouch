@@ -1,0 +1,7 @@
+[workspace]
+members = [
+	"vouch",
+	"vouch-lib",
+	"vouch-py",
+	"vouch-js",
+]
