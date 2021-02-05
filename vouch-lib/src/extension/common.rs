@@ -24,12 +24,15 @@ pub trait Extension: Send + Sync {
     fn new() -> Self
     where
         Self: Sized;
+
+    /// Initialise extension from a process.
     fn from_process(
         process_path: &std::path::PathBuf,
         extension_config_path: &std::path::PathBuf,
     ) -> Result<Self>
     where
         Self: Sized;
+
     fn name(&self) -> String;
     fn host_name(&self) -> String;
 
