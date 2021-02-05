@@ -122,7 +122,7 @@ fn local_dependancies_table() -> Result<()> {
         let dependancy_reports: Result<Vec<report::DependancyReport>> = dependancies
             .into_iter()
             .map(|dependancy| -> Result<report::DependancyReport> {
-                Ok(report::get_dependancy_report(&dependancy, &extension, &tx)?)
+                Ok(report::get_dependancy_report(&dependancy, &tx)?)
             })
             .collect();
         let dependancy_reports = dependancy_reports?;

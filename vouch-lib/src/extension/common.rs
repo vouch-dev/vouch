@@ -3,6 +3,7 @@ use anyhow::Result;
 /// Dependancies found from inspecting the local filesystem.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct LocalDependancy {
+    pub registry_host_name: String,
     pub name: String,
 
     // TODO: Change to result with error types.

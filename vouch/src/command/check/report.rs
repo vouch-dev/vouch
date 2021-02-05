@@ -19,9 +19,9 @@ pub struct DependancyReport {
     pub note: Option<String>,
 }
 
+/// Given a local project dependancy, create a corresponding review report from known reviews.
 pub fn get_dependancy_report(
     dependancy: &vouch_lib::extension::LocalDependancy,
-    extension: &Box<dyn vouch_lib::extension::Extension>,
     tx: &StoreTransaction,
 ) -> Result<DependancyReport> {
     if dependancy.version_parse_error || dependancy.version.is_none() {
@@ -47,7 +47,7 @@ pub fn get_dependancy_report(
         &review::index::Fields {
             package_name: Some(&dependancy.name),
             package_version: Some(&package_version),
-            registry_host_name: Some(extension.host_name().as_str()),
+            registry_host_name: Some(dependancy.registry_host_name.as_str()),
             ..Default::default()
         },
         &tx,

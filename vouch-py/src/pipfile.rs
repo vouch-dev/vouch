@@ -7,6 +7,8 @@ struct ParsedVersion {
     missing: bool,
 }
 
+static HOST_NAME: &str = "pypi.org";
+
 /// Parse and clean package version string.
 ///
 /// Returns a structure which details common errors.
@@ -45,6 +47,7 @@ fn parse_section(
         let version_parse_result = get_parsed_version(&entry["version"].as_str())?;
 
         dependancies.insert(vouch_lib::extension::LocalDependancy {
+            registry_host_name: HOST_NAME.to_owned(),
             name: package_name.clone(),
             version: version_parse_result.version,
             version_parse_error: version_parse_result.parse_error,
