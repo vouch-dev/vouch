@@ -108,7 +108,7 @@ fn local_dependancies_table() -> Result<()> {
         extension::identify_local_dependancies(&extensions, &working_directory)?;
     for (extension, dependancies) in extensions.iter().zip(local_dependancies.into_iter()) {
         log::info!(
-            "Inspecting dependancies for extension: {}",
+            "Inspecting dependancies supported by extension: {}",
             extension.name()
         );
         let dependancies = match dependancies {
