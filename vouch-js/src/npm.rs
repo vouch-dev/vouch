@@ -57,21 +57,21 @@ fn parse_section(
     Ok(dependancies)
 }
 
-/// Parse dependancies from pip lock file (Pipfile.lock).
+/// Parse dependancies from project dependancies definition file.
 pub fn get_dependancies(
     file_path: &std::path::PathBuf,
 ) -> Result<HashSet<vouch_lib::extension::LocalDependancy>> {
     let file = std::fs::File::open(file_path)?;
     let reader = std::io::BufReader::new(file);
-    let pipfile: serde_json::Value = serde_json::from_reader(reader).context(format!(
-        "Failed to parse Pipfile.lock: {}",
+    let package_json_file: serde_json::Value = serde_json::from_reader(reader).context(format!(
+        "Failed to parse package.json: {}",
         file_path.display()
     ))?;
 
     let mut all_dependancies: HashSet<vouch_lib::extension::LocalDependancy> = HashSet::new();
     for section in vec!["default", "develop"] {
-        let json_section = pipfile[section].as_object().ok_or(format_err!(
-            "Failed to parse '{}' section of Pipfile.lock",
+        let json_section = package_json_file[section].as_object().ok_or(format_err!(
+            "Failed to parse '{}' section of package.json file",
             section
         ))?;
         let dependancies = parse_section(&json_section)?;

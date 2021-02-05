@@ -57,7 +57,7 @@ fn parse_section(
     Ok(dependancies)
 }
 
-/// Parse dependancies from pip lock file (Pipfile.lock).
+/// Parse dependancies from project dependancies definition file.
 pub fn get_dependancies(
     file_path: &std::path::PathBuf,
 ) -> Result<HashSet<vouch_lib::extension::LocalDependancy>> {
