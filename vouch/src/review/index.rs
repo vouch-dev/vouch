@@ -274,8 +274,8 @@ mod tests {
         Ok(package::index::insert(
             &format!("test_package_name_{unique_tag}", unique_tag = unique_tag),
             "test_package_version",
-            &crate::common::GitUrl::try_from("http://localhost/test_package_version_url")?,
-            &crate::common::GitUrl::try_from("http://localhost/test_source_code_url")?,
+            &url::Url::parse("http://localhost/test_package_version_url")?,
+            &url::Url::parse("http://localhost/test_source_code_url")?,
             "test_source_code_sha256",
             "test_registry_host_name",
             &tx,

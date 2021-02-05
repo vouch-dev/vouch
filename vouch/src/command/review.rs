@@ -1,7 +1,6 @@
 use std::io::Read;
 
 use anyhow::{format_err, Context, Result};
-use std::convert::TryFrom;
 use structopt::{self, StructOpt};
 use tempdir;
 
@@ -109,10 +108,10 @@ fn get_insert_package(
         extension::get_remote_package_metadata(&package_name, &package_version, &extensions)?
             .ok_or(format_err!("Failed to find package in package registries."))?;
     let package_version_url = match &remote_package_metadata.registry_package_version_url {
-        Some(url) => common::GitUrl::try_from(url.as_str())?,
+        Some(url) => url::Url::parse(url.as_str())?,
         None => return Ok(None),
     };
-    let source_code_url = common::GitUrl::try_from(
+    let source_code_url = url::Url::parse(
         remote_package_metadata
             .source_code_url
             .clone()

@@ -1,6 +1,5 @@
 use anyhow::{format_err, Result};
 use std::collections::HashSet;
-use std::convert::TryFrom;
 
 use super::super::common;
 use crate::common::StoreTransaction;
@@ -16,8 +15,10 @@ pub struct Package {
     pub name: String,
     pub version: String,
     pub registry: registry::index::Registry,
-    pub package_registry_url: common::GitUrl,
-    pub source_code_url: common::GitUrl,
+
+    pub package_registry_url: url::Url,
+
+    pub source_code_url: url::Url,
     pub source_code_sha256: String,
 }
 
@@ -62,8 +63,8 @@ pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
 pub fn insert(
     package_name: &str,
     package_version: &str,
-    package_version_url: &common::GitUrl,
-    source_code_url: &common::GitUrl,
+    package_version_url: &url::Url,
+    source_code_url: &url::Url,
     source_code_sha256: &str,
     registry_host_name: &str,
     tx: &StoreTransaction,
@@ -153,8 +154,8 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
             name: row.get(1)?,
             version: row.get(2)?,
             registry: registry,
-            package_registry_url: common::GitUrl::try_from(row.get::<_, String>(4)?.as_str())?,
-            source_code_url: common::GitUrl::try_from(row.get::<_, String>(5)?.as_str())?,
+            package_registry_url: url::Url::parse(row.get::<_, String>(4)?.as_str())?,
+            source_code_url: url::Url::parse(row.get::<_, String>(5)?.as_str())?,
             source_code_sha256: row.get(6)?,
         };
         packages.insert(package);
