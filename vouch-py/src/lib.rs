@@ -36,10 +36,6 @@ impl vouch_lib::extension::Extension for PyExtension {
         self.name_.clone()
     }
 
-    fn host_name(&self) -> String {
-        self.host_name_.clone()
-    }
-
     fn identify_local_dependancies(
         &self,
         working_directory: &std::path::PathBuf,

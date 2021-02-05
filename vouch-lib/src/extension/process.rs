@@ -62,10 +62,6 @@ impl common::Extension for ProcessExtension {
         self.name_.clone()
     }
 
-    fn host_name(&self) -> String {
-        self.host_name_.clone()
-    }
-
     /// Returns a list of local package dependancies which might also be hosted on the registry.
     fn identify_local_dependancies(
         &self,

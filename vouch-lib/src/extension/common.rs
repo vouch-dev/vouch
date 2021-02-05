@@ -36,7 +36,6 @@ pub trait Extension: Send + Sync {
         Self: Sized;
 
     fn name(&self) -> String;
-    fn host_name(&self) -> String;
 
     /// Returns a list of local package dependancies which are
     /// relevant to this extension.
