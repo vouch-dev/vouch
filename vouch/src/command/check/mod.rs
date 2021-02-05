@@ -126,6 +126,7 @@ fn local_dependancies_table() -> Result<()> {
             })
             .collect();
         let dependancy_reports = dependancy_reports?;
+
         log::info!(
             "Number of dependancies found: {count_dependancies}",
             count_dependancies = dependancy_reports.len(),
@@ -136,7 +137,7 @@ fn local_dependancies_table() -> Result<()> {
         }
 
         let table = table::get(&dependancy_reports)?;
-        println!("Registry: {}", extension.host_name());
+        println!("Ecosystem: {}", extension.name());
         table.printstd();
     }
     Ok(())
