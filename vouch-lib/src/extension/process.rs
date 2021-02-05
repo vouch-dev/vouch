@@ -4,7 +4,7 @@ use super::common;
 
 #[derive(Debug, Clone)]
 pub struct ProcessExtension {
-    process_path: std::path::PathBuf,
+    process_path_: std::path::PathBuf,
     name_: String,
     host_name_: String,
 }
@@ -52,7 +52,7 @@ impl common::Extension for ProcessExtension {
         };
 
         Ok(ProcessExtension {
-            process_path: process_path.clone(),
+            process_path_: process_path.clone(),
             name_: static_data.name,
             host_name_: static_data.host_name,
         })
@@ -76,7 +76,7 @@ impl common::Extension for ProcessExtension {
             working_directory.display()
         ))?;
         let args = vec!["identify-local-dependancies", working_directory];
-        let output: Box<Vec<common::LocalDependancy>> = run_process(&self.process_path, &args)?;
+        let output: Box<Vec<common::LocalDependancy>> = run_process(&self.process_path_, &args)?;
         Ok(*output)
     }
 
@@ -97,7 +97,7 @@ impl common::Extension for ProcessExtension {
             package_version,
             working_directory,
         ];
-        let output: Box<common::RemotePackageMetadata> = run_process(&self.process_path, &args)?;
+        let output: Box<common::RemotePackageMetadata> = run_process(&self.process_path_, &args)?;
         Ok(*output)
     }
 }
