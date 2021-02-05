@@ -114,7 +114,7 @@ pub fn get_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>>
             *config
                 .extensions
                 .enabled
-                .get(&extension.host_name())
+                .get(&extension.name())
                 .unwrap_or(&false)
         })
         .collect();
@@ -134,7 +134,7 @@ fn update_config(
         .collect();
     let all_found_names: std::collections::BTreeSet<String> = extensions
         .iter()
-        .map(|extension| extension.host_name())
+        .map(|extension| extension.name())
         .collect();
 
     let stale_config_names: Vec<_> = configured_names.difference(&all_found_names).collect();
