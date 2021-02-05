@@ -40,18 +40,6 @@ impl vouch_lib::extension::Extension for PyExtension {
         self.host_name_.clone()
     }
 
-    fn root_url(&self) -> url::Url {
-        self.root_url_.clone()
-    }
-
-    fn package_url_template(&self) -> String {
-        self.package_url_template_.clone()
-    }
-
-    fn package_version_url_template(&self) -> String {
-        self.package_version_url_template_.clone()
-    }
-
     fn identify_local_dependancies(
         &self,
         working_directory: &std::path::PathBuf,

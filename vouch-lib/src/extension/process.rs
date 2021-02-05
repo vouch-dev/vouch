@@ -1,18 +1,12 @@
 use anyhow::{format_err, Context, Result};
-use url;
 
 use super::common;
 
 #[derive(Debug, Clone)]
 pub struct ProcessExtension {
     process_path: std::path::PathBuf,
-
     name_: String,
     host_name_: String,
-    root_url_: url::Url,
-
-    package_url_template_: String,
-    package_version_url_template_: String,
 }
 
 impl common::Extension for ProcessExtension {
@@ -34,9 +28,6 @@ impl common::Extension for ProcessExtension {
         struct StaticData {
             name: String,
             host_name: String,
-            root_url: String,
-            package_url_template: String,
-            package_version_url_template: String,
         }
 
         let static_data: StaticData = if extension_config_path.is_file() {
@@ -62,12 +53,8 @@ impl common::Extension for ProcessExtension {
 
         Ok(ProcessExtension {
             process_path: process_path.clone(),
-
             name_: static_data.name,
             host_name_: static_data.host_name,
-            root_url_: url::Url::parse(&static_data.root_url)?,
-            package_url_template_: static_data.package_url_template,
-            package_version_url_template_: static_data.package_version_url_template,
         })
     }
 
@@ -77,18 +64,6 @@ impl common::Extension for ProcessExtension {
 
     fn host_name(&self) -> String {
         self.host_name_.clone()
-    }
-
-    fn root_url(&self) -> url::Url {
-        self.root_url_.clone()
-    }
-
-    fn package_url_template(&self) -> String {
-        self.package_url_template_.clone()
-    }
-
-    fn package_version_url_template(&self) -> String {
-        self.package_version_url_template_.clone()
     }
 
     /// Returns a list of local package dependancies which might also be hosted on the registry.
