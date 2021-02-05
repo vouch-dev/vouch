@@ -57,6 +57,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let review = match reviews.first() {
         Some(review) => review.clone(),
         None => {
+            // No existing review found. Find package remote metadata and start new review.
             let extensions = extension::get_extensions()?;
             let package =
                 get_insert_package(&args.package_name, &args.package_version, &extensions, &tx)?
@@ -104,7 +105,7 @@ fn get_insert_package(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     tx: &common::StoreTransaction,
 ) -> Result<Option<package::Package>> {
-    let (extension, remote_package_metadata) =
+    let (_extension, remote_package_metadata) =
         extension::get_remote_package_metadata(&package_name, &package_version, &extensions)?
             .ok_or(format_err!("Failed to find package in package registries."))?;
     let package_version_url = match &remote_package_metadata.registry_package_version_url {
@@ -124,11 +125,16 @@ fn get_insert_package(
         .clone()
         .ok_or(format_err!("Could not find source code SHA256 hash."))?;
 
+    let registry_host_name = &remote_package_metadata
+        .registry_host_name
+        .clone()
+        .ok_or(format_err!("Registry host name not specified."))?;
+
     let package = match package::index::get(
         &package::index::Fields {
             package_name: Some(&package_name),
             package_version: Some(&package_version),
-            registry_host_name: Some(&extension.host_name()),
+            registry_host_name: Some(registry_host_name),
             ..Default::default()
         },
         &tx,
@@ -143,7 +149,7 @@ fn get_insert_package(
             &package_version_url,
             &source_code_url,
             &source_code_sha256,
-            &extension.host_name(),
+            &registry_host_name,
             &tx,
         )?,
     };

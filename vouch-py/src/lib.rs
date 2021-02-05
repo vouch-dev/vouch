@@ -79,6 +79,7 @@ impl vouch_lib::extension::Extension for PyExtension {
         if dependancy_files.is_none() {
             return Ok(vouch_lib::extension::RemotePackageMetadata {
                 found_local_use: false,
+                registry_host_name: Some(self.host_name_.clone()),
                 registry_package_url: None,
                 registry_package_version_url: None,
                 source_code_url: None,
@@ -97,6 +98,7 @@ impl vouch_lib::extension::Extension for PyExtension {
             None => {
                 return Ok(vouch_lib::extension::RemotePackageMetadata {
                     found_local_use,
+                    registry_host_name: Some(self.host_name_.clone()),
                     registry_package_url: registry_package_url.map(|x| x.to_string()),
                     registry_package_version_url: registry_package_version_url
                         .map(|x| x.to_string()),
@@ -112,6 +114,7 @@ impl vouch_lib::extension::Extension for PyExtension {
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             found_local_use,
+            registry_host_name: Some(self.host_name_.clone()),
             registry_package_url: Some(registry_package_url.to_string()),
             registry_package_version_url: registry_package_version_url.map(|x| x.to_string()),
             source_code_url: Some(source_code_url.to_string()),
