@@ -29,7 +29,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 
     store::index::setup(&tx)?;
 
-    tx.commit("Setup vouch.")?;
+    tx.commit("Setup Vouch.")?;
     Ok(())
 }
 
