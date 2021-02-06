@@ -34,12 +34,11 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
-    // First check for existing root peer review.
+    // Check index for existing root peer review.
     // If unfound create a new review.
-    log::debug!("Checking for existing root peer review.");
+    log::debug!("Checking index for existing root peer review.");
     let root_peer =
         peer::index::get_root(&tx)?.ok_or(format_err!("Cant find root peer. Index corrupt."))?;
-
     let reviews = review::index::get(
         &review::index::Fields {
             package_name: Some(&args.package_name),
@@ -61,7 +60,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
             let package =
                 get_insert_package(&args.package_name, &args.package_version, &extensions, &tx)?
                     .ok_or(format_err!(
-                        "Failed to derive package metadata from extension."
+                        "Failed to derive package metadata from extension(s)."
                     ))?;
             get_insert_unset_review(&package, &tx)?
         }
@@ -98,6 +97,8 @@ fn get_insert_unset_review(
     Ok(unset_review)
 }
 
+/// Attempt to retrieve package from index.
+/// Add package metadata using extension(s) if missing.
 fn get_insert_package(
     package_name: &str,
     package_version: &str,
