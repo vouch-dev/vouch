@@ -83,21 +83,33 @@ pub fn insert(
         None => registry::index::insert(&registry_host_name, &tx)?,
     };
 
-    tx.index_tx().execute(
+    tx.index_tx().execute_named(
         r"
-            INSERT INTO package
-                (name, version, registry_id, package_registry_url, source_code_url, source_code_sha256)
-            VALUES
-                (?1, ?2, ?3, ?4, ?5, ?6)
+            INSERT INTO package (
+                name,
+                version,
+                registry_id,
+                package_registry_url,
+                source_code_url,
+                source_code_sha256
+            )
+            VALUES (
+                :name,
+                :version,
+                :registry_id,
+                :package_registry_url,
+                :source_code_url,
+                :source_code_sha256
+            )
         ",
-        rusqlite::params![
-            package_name,
-            package_version,
-            registry.id,
-            package_version_url.to_string(),
-            source_code_url.to_string(),
-            source_code_sha256,
-        ],
+        rusqlite::named_params! {
+            ":name": package_name,
+            ":version": package_version,
+            ":registry_id": registry.id,
+            ":package_registry_url": package_version_url.to_string(),
+            ":source_code_url": source_code_url.to_string(),
+            ":source_code_sha256": source_code_sha256,
+        },
     )?;
     Ok(Package {
         id: tx.index_tx().last_insert_rowid(),
