@@ -6,7 +6,7 @@ use super::common;
 pub struct ProcessExtension {
     process_path_: std::path::PathBuf,
     name_: String,
-    host_name_: String,
+    registry_host_names_: Vec<String>,
 }
 
 impl common::Extension for ProcessExtension {
@@ -27,7 +27,7 @@ impl common::Extension for ProcessExtension {
         #[derive(serde::Serialize, serde::Deserialize)]
         struct StaticData {
             name: String,
-            host_name: String,
+            registry_host_names: Vec<String>,
         }
 
         let static_data: StaticData = if extension_config_path.is_file() {
@@ -54,12 +54,16 @@ impl common::Extension for ProcessExtension {
         Ok(ProcessExtension {
             process_path_: process_path.clone(),
             name_: static_data.name,
-            host_name_: static_data.host_name,
+            registry_host_names_: static_data.registry_host_names,
         })
     }
 
     fn name(&self) -> String {
         self.name_.clone()
+    }
+
+    fn registries(&self) -> Vec<String> {
+        self.registry_host_names_.clone()
     }
 
     /// Returns a list of local package dependancies which might also be hosted on the registry.

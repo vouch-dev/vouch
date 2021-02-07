@@ -7,7 +7,7 @@ mod pipfile;
 #[derive(Clone, Debug)]
 pub struct PyExtension {
     name_: String,
-    host_name_: String,
+    registry_host_names_: Vec<String>,
     root_url_: url::Url,
     package_url_template_: String,
     package_version_url_template_: String,
@@ -17,7 +17,7 @@ impl vouch_lib::extension::Extension for PyExtension {
     fn new() -> Self {
         Self {
             name_: "py".to_string(),
-            host_name_: "pypi.org".to_string(),
+            registry_host_names_: vec!["pypi.org".to_owned()],
             root_url_: url::Url::parse("https://pypi.org/pypi").unwrap(),
             package_url_template_: "https://pypi.org/pypi/{{package_name}}/".to_string(),
             package_version_url_template_:
@@ -34,6 +34,10 @@ impl vouch_lib::extension::Extension for PyExtension {
 
     fn name(&self) -> String {
         self.name_.clone()
+    }
+
+    fn registries(&self) -> Vec<String> {
+        self.registry_host_names_.clone()
     }
 
     fn identify_local_dependancies(
@@ -72,29 +76,28 @@ impl vouch_lib::extension::Extension for PyExtension {
         working_directory: &std::path::PathBuf,
     ) -> Result<vouch_lib::extension::RemotePackageMetadata> {
         let dependancy_files = identify_dependancy_files(&working_directory);
-        if dependancy_files.is_none() {
-            return Ok(vouch_lib::extension::RemotePackageMetadata {
-                found_local_use: false,
-                registry_host_name: Some(self.host_name_.clone()),
-                registry_package_url: None,
-                registry_package_version_url: None,
-                source_code_url: None,
-                source_code_sha256: None,
-            });
-        }
-
-        // Found local package dependancy file(s). Query remote package registry for given package.
         let found_local_use = dependancy_files.is_some();
+
+        // Query remote package registry for given package.
         let registry_package_url = get_package_url(&self, &package_name)?;
         let registry_package_version_url =
             get_package_version_url(&self, &package_name, &package_version)?;
+
+        // Currently, only one registry is supported. Therefore simply extract.
+        let registry_host_name = self
+            .registries()
+            .first()
+            .ok_or(format_err!(
+                "Code erorr: vector of registry host names is empty."
+            ))?
+            .clone();
 
         let registry_package_url = match &registry_package_url {
             Some(v) => v,
             None => {
                 return Ok(vouch_lib::extension::RemotePackageMetadata {
                     found_local_use,
-                    registry_host_name: Some(self.host_name_.clone()),
+                    registry_host_name: Some(registry_host_name),
                     registry_package_url: registry_package_url.map(|x| x.to_string()),
                     registry_package_version_url: registry_package_version_url
                         .map(|x| x.to_string()),
@@ -110,7 +113,7 @@ impl vouch_lib::extension::Extension for PyExtension {
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             found_local_use,
-            registry_host_name: Some(self.host_name_.clone()),
+            registry_host_name: Some(registry_host_name),
             registry_package_url: Some(registry_package_url.to_string()),
             registry_package_version_url: registry_package_version_url.map(|x| x.to_string()),
             source_code_url: Some(source_code_url.to_string()),

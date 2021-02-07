@@ -8,8 +8,6 @@ mod extensions;
 )]
 pub struct Config {
     pub core: core::Core,
-
-    #[serde(flatten)]
     pub extensions: extensions::Extensions,
 }
 

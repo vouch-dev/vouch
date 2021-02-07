@@ -4,8 +4,10 @@ use anyhow::{format_err, Result};
     Debug, Clone, Default, Ord, PartialOrd, Eq, PartialEq, serde::Serialize, serde::Deserialize,
 )]
 pub struct Extensions {
-    #[serde(rename = "enabled-extensions")]
     pub enabled: std::collections::BTreeMap<String, bool>,
+
+    #[serde(rename = "supported-package-registries")]
+    pub supported_package_registries: std::collections::BTreeMap<String, String>,
 }
 
 fn get_regex() -> Result<regex::Regex> {

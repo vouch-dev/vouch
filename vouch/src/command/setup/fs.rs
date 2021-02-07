@@ -114,6 +114,13 @@ fn setup_config(
         config.core.root_git_url = remote_repository_url.clone();
         for extension in extension::get_all_extensions()? {
             config.extensions.enabled.insert(extension.name(), true);
+
+            for registry in extension.registries() {
+                config
+                    .extensions
+                    .supported_package_registries
+                    .insert(registry, extension.name());
+            }
         }
 
         config.dump()?;
