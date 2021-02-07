@@ -68,7 +68,7 @@ pub fn run_command(_args: &Arguments) -> Result<()> {
     } else {
         println!(
             "Remote repository not specified.\n\
-        Specify using `vouch config core.git-url <url>`.\n\
+        Specify using `vouch config core.root-git-url <url>`.\n\
         Not pushing local changes."
         );
     }
