@@ -35,10 +35,14 @@ pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
 }
 
 pub fn insert(host_name: &str, tx: &StoreTransaction) -> Result<Registry> {
-    tx.index_tx().execute(
+    tx.index_tx().execute_named(
         "INSERT INTO registry (host_name)
-            VALUES (?1)",
-        rusqlite::params![host_name],
+            VALUES (
+                :host_name
+            )",
+        rusqlite::named_params! {
+            ":host_name": host_name
+        },
     )?;
     Ok(Registry {
         id: tx.index_tx().last_insert_rowid(),
