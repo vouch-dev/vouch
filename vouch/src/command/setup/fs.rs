@@ -9,7 +9,7 @@ fn handle_nonempty_git_repository(directory_path: &std::path::PathBuf, force: bo
     if !force && !target_directory_empty {
         // TODO: Check with storage::sync for unsynchronized changes. Improve feedback.
         return Err(format_err!(
-            "Setup directory is not empty ({}).\nUse --force to overwrite existing directory contents.",
+            "Setup directory is not empty ({}).\nUse --force to overwrite existing data.",
             &directory_path.display()
         ));
     }
@@ -101,19 +101,19 @@ fn setup_data_directory_contents(paths: &common::fs::DataPaths) -> Result<()> {
     Ok(())
 }
 
-fn setup_config(paths: &common::fs::ConfigPaths) -> Result<()> {
+fn setup_config(paths: &common::fs::ConfigPaths, force: bool) -> Result<()> {
     std::fs::create_dir_all(&paths.root_directory)?;
-    if !paths.config_file.is_file() {
+    if force || !paths.config_file.is_file() {
         log::debug!(
-            "Generating missing config file: {}",
+            "Generating config file: {}",
             paths.config_file.display()
         );
         let config = crate::common::config::Config::default();
         config.dump()?;
     } else {
         log::debug!(
-            "Not overwriting existing config file: {}",
-            paths.config_file.display()
+            "Not overwriting existing config file (--force: {:?}): {}",
+            force, paths.config_file.display()
         );
     }
     Ok(())
@@ -125,7 +125,7 @@ pub fn setup(remote_repository_url: &Option<common::GitUrl>, force: bool) -> Res
 
     let config_paths = common::fs::ConfigPaths::new()?;
     log::debug!("Using config paths: {:#?}", config_paths);
-    setup_config(&config_paths)?;
+    setup_config(&config_paths, force)?;
     log::debug!("Config setup complete.");
 
     log::debug!("Ensuring root data directory exists.");
