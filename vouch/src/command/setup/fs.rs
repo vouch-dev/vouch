@@ -104,16 +104,14 @@ fn setup_data_directory_contents(paths: &common::fs::DataPaths) -> Result<()> {
 fn setup_config(paths: &common::fs::ConfigPaths, force: bool) -> Result<()> {
     std::fs::create_dir_all(&paths.root_directory)?;
     if force || !paths.config_file.is_file() {
-        log::debug!(
-            "Generating config file: {}",
-            paths.config_file.display()
-        );
+        log::debug!("Generating config file: {}", paths.config_file.display());
         let config = crate::common::config::Config::default();
         config.dump()?;
     } else {
         log::debug!(
             "Not overwriting existing config file (--force: {:?}): {}",
-            force, paths.config_file.display()
+            force,
+            paths.config_file.display()
         );
     }
     Ok(())
