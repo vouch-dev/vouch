@@ -56,6 +56,7 @@ pub fn get_remote_package_metadata<'a>(
         &working_directory,
     )?;
 
+    // TODO: Allow user to select between multiple found results.
     // Select first plausable result.
     for (search_result, extension) in search_results.into_iter().zip(extensions.iter()) {
         match search_result {
