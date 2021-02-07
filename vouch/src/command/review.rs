@@ -56,7 +56,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         Some(review) => review.clone(),
         None => {
             // No existing review found. Find package remote metadata and start new review.
-            let extensions = extension::get_extensions()?;
+            let extensions = extension::get_enabled_extensions()?;
             let package =
                 get_insert_package(&args.package_name, &args.package_version, &extensions, &tx)?
                     .ok_or(format_err!(

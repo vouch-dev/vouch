@@ -3,6 +3,7 @@ use git2;
 use std::io::Write;
 
 use crate::common;
+use crate::extension;
 
 fn handle_nonempty_git_repository(directory_path: &std::path::PathBuf, force: bool) -> Result<()> {
     let target_directory_empty = directory_path.read_dir()?.next().is_none();
@@ -68,10 +69,6 @@ fn setup_git_repository(
                 .unwrap_or(&std::path::PathBuf::from(r"/"))
                 .to_path_buf(),
         )?;
-
-        let mut config = common::config::Config::load()?;
-        config.set("core.git-url", &remote_repository_url.to_string())?;
-        config.dump()?;
     } else {
         log::debug!("Initialising git repository.");
         git2::Repository::init(&paths.root_directory)?;
@@ -101,11 +98,24 @@ fn setup_data_directory_contents(paths: &common::fs::DataPaths) -> Result<()> {
     Ok(())
 }
 
-fn setup_config(paths: &common::fs::ConfigPaths, force: bool) -> Result<()> {
+/// Setup config file.
+///
+/// If config file exists and force is false, file will not be modified.
+fn setup_config(
+    remote_repository_url: &Option<common::GitUrl>,
+    paths: &common::fs::ConfigPaths,
+    force: bool,
+) -> Result<()> {
     std::fs::create_dir_all(&paths.root_directory)?;
     if force || !paths.config_file.is_file() {
         log::debug!("Generating config file: {}", paths.config_file.display());
-        let config = crate::common::config::Config::default();
+        let mut config = crate::common::config::Config::default();
+
+        config.core.root_git_url = remote_repository_url.clone();
+        for extension in extension::get_all_extensions()? {
+            config.extensions.enabled.insert(extension.name(), true);
+        }
+
         config.dump()?;
     } else {
         log::debug!(
@@ -123,13 +133,13 @@ pub fn setup(remote_repository_url: &Option<common::GitUrl>, force: bool) -> Res
 
     let config_paths = common::fs::ConfigPaths::new()?;
     log::debug!("Using config paths: {:#?}", config_paths);
-    setup_config(&config_paths, force)?;
+    setup_config(&remote_repository_url, &config_paths, force)?;
     log::debug!("Config setup complete.");
 
     log::debug!("Ensuring root data directory exists.");
     std::fs::create_dir_all(&data_paths.root_directory)?;
 
-    setup_git_repository(remote_repository_url, &data_paths, force)?;
+    setup_git_repository(&remote_repository_url, &data_paths, force)?;
     log::debug!("Repo git setup complete.");
 
     setup_data_directory_contents(&data_paths)?;

@@ -93,8 +93,8 @@ pub fn identify_local_dependancies(
     .unwrap()
 }
 
-pub fn get_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>> {
-    log::debug!("Identifying extensions.");
+pub fn get_all_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>> {
+    log::debug!("Identifying all extensions.");
 
     let mut all_extensions = vec![
         Box::new(vouch_py_lib::PyExtension::new()) as Box<dyn vouch_lib::extension::Extension>,
@@ -105,6 +105,13 @@ pub fn get_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>>
     for extension in process_extensions.into_iter() {
         all_extensions.push(Box::new(extension) as Box<dyn vouch_lib::extension::Extension>);
     }
+
+    Ok(all_extensions)
+}
+
+pub fn get_enabled_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>> {
+    log::debug!("Identifying enabled extensions.");
+    let mut all_extensions = get_all_extensions()?;
 
     let mut config = common::config::Config::load()?;
     update_config(&mut config, &all_extensions)?;

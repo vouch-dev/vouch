@@ -100,7 +100,7 @@ fn local_dependancies_table() -> Result<()> {
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
-    let extensions = extension::get_extensions()?;
+    let extensions = extension::get_enabled_extensions()?;
     let working_directory = std::env::current_dir()?;
     log::debug!("Current working directory: {}", working_directory.display());
 
