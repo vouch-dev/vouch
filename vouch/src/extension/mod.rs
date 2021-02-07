@@ -60,10 +60,7 @@ pub fn get_remote_package_metadata<'a>(
     for (search_result, extension) in search_results.into_iter().zip(extensions.iter()) {
         match search_result {
             Ok(search_result) => {
-                // TODO: Remove unnecassary local use check.
-                if search_result.found_local_use {
-                    return Ok(Some((extension, search_result)));
-                }
+                return Ok(Some((extension, search_result)));
             }
             Err(_) => continue,
         };
