@@ -28,6 +28,7 @@ impl Config {
         let paths = super::fs::ConfigPaths::new()?;
         let file = std::fs::OpenOptions::new()
             .write(true)
+            .append(false)
             .create(true)
             .open(&paths.config_file)
             .context(format!(

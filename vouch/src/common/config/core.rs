@@ -5,7 +5,8 @@ use std::convert::TryFrom;
     Debug, Clone, Default, Ord, PartialOrd, Eq, PartialEq, serde::Serialize, serde::Deserialize,
 )]
 pub struct Core {
-    pub git_url: Option<crate::common::GitUrl>,
+    #[serde(rename = "root-git-url")]
+    pub root_git_url: Option<crate::common::GitUrl>,
 }
 
 fn get_regex() -> Result<regex::Regex> {
@@ -28,7 +29,7 @@ pub fn set(core: &mut Core, name: &str, value: &str) -> Result<()> {
         .as_str();
 
     match field {
-        "git-url" => {
+        "root-git-url" => {
             let url = crate::common::GitUrl::try_from(value)
                 .context(format!("Failed to parse URL: {}", value))?;
 
@@ -36,7 +37,7 @@ pub fn set(core: &mut Core, name: &str, value: &str) -> Result<()> {
             let repo = git2::Repository::open(&paths.root_directory)?;
             repo.remote_set_url("origin", &url.to_string())?;
 
-            core.git_url = Some(crate::common::GitUrl::try_from(value)?);
+            core.root_git_url = Some(crate::common::GitUrl::try_from(value)?);
             Ok(())
         }
         _ => Err(format_err!(name_error_message.clone())),
@@ -55,7 +56,7 @@ pub fn get(core: &Core, name: &str) -> Result<String> {
         .as_str();
 
     match field {
-        "git-url" => Ok(match &core.git_url {
+        "root-git-url" => Ok(match &core.root_git_url {
             Some(url) => url.to_string(),
             None => "".to_string(),
         }),

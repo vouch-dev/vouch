@@ -4,7 +4,7 @@ use anyhow::{format_err, Result};
     Debug, Clone, Default, Ord, PartialOrd, Eq, PartialEq, serde::Serialize, serde::Deserialize,
 )]
 pub struct Extensions {
-    #[serde(rename = "extensions")]
+    #[serde(rename = "enabled-extensions")]
     pub enabled: std::collections::BTreeMap<String, bool>,
 }
 
