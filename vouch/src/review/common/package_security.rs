@@ -65,7 +65,6 @@ impl std::fmt::Display for PackageSecurity {
     }
 }
 
-// TODO: Is this used?
 impl Default for PackageSecurity {
     fn default() -> PackageSecurity {
         PackageSecurity::Unset
