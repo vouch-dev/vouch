@@ -25,10 +25,14 @@ pub struct Arguments {
     /// Package version.
     #[structopt(name = "package-version")]
     pub package_version: String,
+
+    /// Specify an extension for handling the package.
+    /// Example values: py, js, rs
+    #[structopt(long, short)]
+    pub extension: Option<String>,
 }
 
 pub fn run_command(args: &Arguments) -> Result<()> {
-    // TODO: Add --hint
     // TODO: Add gpg signing.
 
     let mut store = store::Store::from_root()?;
@@ -48,10 +52,13 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         },
         &tx,
     )?;
+    log::debug!("Count existing matching reviews: {}", reviews.len() > 1);
+
     if reviews.len() > 1 {
-        // TODO: Use hint.
-        return Ok(());
+        // TODO: Attempt to filter reviews on given extension.
+        return handle_multiple_matching_reviews(&reviews);
     }
+
     let review = match reviews.first() {
         Some(review) => review.clone(),
         None => {
@@ -79,6 +86,35 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     );
     tx.commit(&commit_message)?;
     Ok(())
+}
+
+/// Request extension specification when multiple matching reviews found.
+fn handle_multiple_matching_reviews(reviews: &Vec<review::Review>) -> Result<()> {
+    assert!(reviews.len() > 1);
+
+    let registry_host_names: std::collections::BTreeSet<String> = reviews
+        .iter()
+        .map(|review| review.package.registry.host_name.clone())
+        .collect();
+    let config = crate::common::config::Config::load()?;
+    let extension_names: std::collections::BTreeSet<String> = config
+        .extensions
+        .supported_package_registries
+        .iter()
+        .filter(|(registry_host_name, _extension_name)| {
+            registry_host_names.contains(registry_host_name.as_str())
+        })
+        .map(|(_registry_host_name, extension_name)| extension_name.clone())
+        .collect();
+
+    let extension_names: Vec<String> = extension_names.into_iter().collect();
+
+    return Err(format_err!(
+        "Found multiple matching candidate packages.\n\
+        Please specify an extension using --extension (-e).\n\
+        Matching extensions: {}",
+        extension_names.join(", ")
+    ));
 }
 
 fn get_insert_unset_review(
