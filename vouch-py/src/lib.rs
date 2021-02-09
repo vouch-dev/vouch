@@ -79,7 +79,6 @@ impl vouch_lib::extension::Extension for PyExtension {
         let found_local_use = dependancy_files.is_some();
 
         // Query remote package registry for given package.
-        let registry_package_url = get_package_url(&self, &package_name)?;
         let registry_human_url = get_package_version_url(&self, &package_name, &package_version)?;
 
         // Currently, only one registry is supported. Therefore simply extract.
@@ -91,45 +90,18 @@ impl vouch_lib::extension::Extension for PyExtension {
             ))?
             .clone();
 
-        let registry_package_url = match &registry_package_url {
-            Some(v) => v,
-            None => {
-                return Ok(vouch_lib::extension::RemotePackageMetadata {
-                    found_local_use,
-                    registry_host_name: Some(registry_host_name),
-                    registry_package_url: registry_package_url.map(|x| x.to_string()),
-                    registry_human_url: registry_human_url.map(|x| x.to_string()),
-                    source_code_url: None,
-                    source_code_hash: None,
-                });
-            }
-        };
-
-        let entry_json = get_registry_entry_json(&registry_package_url)?;
+        let entry_json = get_registry_entry_json(&package_name)?;
         let source_code_url = get_source_code_url(&entry_json, &package_version)?;
         let source_code_hash = get_source_code_hash(&entry_json, &package_version)?;
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             found_local_use,
             registry_host_name: Some(registry_host_name),
-            registry_package_url: Some(registry_package_url.to_string()),
             registry_human_url: registry_human_url.map(|x| x.to_string()),
             source_code_url: Some(source_code_url.to_string()),
             source_code_hash: Some(source_code_hash),
         })
     }
-}
-
-fn get_package_url(extension: &PyExtension, package_name: &str) -> Result<Option<url::Url>> {
-    // Example return value: https://pypi.org/pypi/numpy/
-    let handlebars_registry = handlebars::Handlebars::new();
-    let url = handlebars_registry.render_template(
-        &extension.package_url_template_,
-        &maplit::btreemap! {
-            "package_name" => package_name,
-        },
-    )?;
-    Ok(Some(url::Url::parse(url.as_str())?))
 }
 
 fn get_package_version_url(
@@ -149,9 +121,15 @@ fn get_package_version_url(
     Ok(Some(url::Url::parse(registry_human_url.as_str())?))
 }
 
-fn get_registry_entry_json(registry_package_url: &url::Url) -> Result<serde_json::Value> {
-    let json_url = registry_package_url.join("json")?;
-    let mut result = reqwest::blocking::get(&json_url.to_string())?;
+fn get_registry_entry_json(package_name: &str) -> Result<serde_json::Value> {
+    let handlebars_registry = handlebars::Handlebars::new();
+    let url = handlebars_registry.render_template(
+        "https://pypi.org/pypi/{{package_name}}/json",
+        &maplit::btreemap! {
+            "package_name" => package_name,
+        },
+    )?;
+    let mut result = reqwest::blocking::get(&url.to_string())?;
     let mut body = String::new();
     result.read_to_string(&mut body)?;
 

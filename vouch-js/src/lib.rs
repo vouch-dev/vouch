@@ -9,7 +9,6 @@ pub struct JsExtension {
     name_: String,
     registry_host_names_: Vec<String>,
     root_url_: url::Url,
-    package_url_template_: String,
     package_version_url_template_: String,
 }
 
@@ -19,7 +18,6 @@ impl vouch_lib::extension::Extension for JsExtension {
             name_: "js".to_string(),
             registry_host_names_: vec!["npmjs.com".to_owned()],
             root_url_: url::Url::parse("https://www.npmjs.com").unwrap(),
-            package_url_template_: "https://www.npmjs.com/package/{{package_name}}/".to_string(),
             package_version_url_template_:
                 "https://www.npmjs.com/package/{{package_name}}/v/{{package_version}}".to_string(),
         }
@@ -76,7 +74,6 @@ impl vouch_lib::extension::Extension for JsExtension {
         let found_local_use = dependancy_files.is_some();
 
         // Query remote package registry for given package.
-        let registry_package_url = get_package_url(&self, &package_name)?;
         let registry_human_url = get_package_version_url(&self, &package_name, &package_version)?;
 
         // Currently, only one registry is supported. Therefore simply extract.
@@ -88,20 +85,6 @@ impl vouch_lib::extension::Extension for JsExtension {
             ))?
             .clone();
 
-        let registry_package_url = match &registry_package_url {
-            Some(v) => v,
-            None => {
-                return Ok(vouch_lib::extension::RemotePackageMetadata {
-                    found_local_use,
-                    registry_host_name: Some(registry_host_name),
-                    registry_package_url: registry_package_url.map(|x| x.to_string()),
-                    registry_human_url: registry_human_url.map(|x| x.to_string()),
-                    source_code_url: None,
-                    source_code_hash: None,
-                });
-            }
-        };
-
         let entry_json = get_registry_entry_json(&package_name)?;
         let source_code_url = get_source_code_url(&entry_json, &package_version)?;
         let source_code_hash = get_source_code_hash(&entry_json, &package_version)?;
@@ -109,24 +92,11 @@ impl vouch_lib::extension::Extension for JsExtension {
         Ok(vouch_lib::extension::RemotePackageMetadata {
             found_local_use,
             registry_host_name: Some(registry_host_name),
-            registry_package_url: Some(registry_package_url.to_string()),
             registry_human_url: registry_human_url.map(|x| x.to_string()),
             source_code_url: Some(source_code_url.to_string()),
             source_code_hash: Some(source_code_hash),
         })
     }
-}
-
-fn get_package_url(extension: &JsExtension, package_name: &str) -> Result<Option<url::Url>> {
-    // Example return value: https://www.npmjs.com/package/d3/
-    let handlebars_registry = handlebars::Handlebars::new();
-    let url = handlebars_registry.render_template(
-        &extension.package_url_template_,
-        &maplit::btreemap! {
-            "package_name" => package_name,
-        },
-    )?;
-    Ok(Some(url::Url::parse(url.as_str())?))
 }
 
 fn get_package_version_url(
