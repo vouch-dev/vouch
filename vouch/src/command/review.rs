@@ -28,8 +28,8 @@ pub struct Arguments {
 
     /// Specify an extension for handling the package.
     /// Example values: py, js, rs
-    #[structopt(long, short)]
-    pub extension: Option<String>,
+    #[structopt(long = "extension", short = "e")]
+    pub extension_name: Option<String>,
 }
 
 pub fn run_command(args: &Arguments) -> Result<()> {
@@ -39,7 +39,6 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let tx = store.get_transaction()?;
 
     // Check index for existing root peer review.
-    // If unfound create a new review.
     log::debug!("Checking index for existing root peer review.");
     let root_peer =
         peer::index::get_root(&tx)?.ok_or(format_err!("Cant find root peer. Index corrupt."))?;
@@ -52,17 +51,28 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         },
         &tx,
     )?;
-    log::debug!("Count existing matching reviews: {}", reviews.len() > 1);
+
+    log::debug!("Count existing matching reviews: {}", reviews.len());
+    let reviews = match &args.extension_name {
+        Some(extension_name) => filter_reviews(&extension_name, &reviews)?,
+        None => reviews,
+    };
+    log::debug!(
+        "Count existing matching reviews post filtering: {}",
+        reviews.len()
+    );
 
     if reviews.len() > 1 {
-        // TODO: Attempt to filter reviews on given extension.
         return handle_multiple_matching_reviews(&reviews);
     }
 
+    // Start a new review if existing review unfound.
     let review = match reviews.first() {
         Some(review) => review.clone(),
         None => {
-            // No existing review found. Find package remote metadata and start new review.
+            log::debug!(
+                "No existing review found. Find package remote metadata and start new review."
+            );
             let extensions = extension::get_enabled_extensions()?;
             let package =
                 get_insert_package(&args.package_name, &args.package_version, &extensions, &tx)?
@@ -86,6 +96,32 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     );
     tx.commit(&commit_message)?;
     Ok(())
+}
+
+/// Filter reviews on given extension.
+fn filter_reviews(
+    target_extension_name: &str,
+    reviews: &Vec<review::Review>,
+) -> Result<Vec<review::Review>> {
+    // Find registry host names which are handled by the given extension.
+    let config = crate::common::config::Config::load()?;
+    let extension_supported_registry_host_names: std::collections::BTreeSet<String> = config
+        .extensions
+        .supported_package_registries
+        .iter()
+        .filter(|(_registry_host_name, extension_name)| {
+            extension_name.as_str() == target_extension_name
+        })
+        .map(|(registry_host_name, _extension_name)| registry_host_name.clone())
+        .collect();
+
+    Ok(reviews
+        .iter()
+        .filter(|review| {
+            extension_supported_registry_host_names.contains(&review.package.registry.host_name)
+        })
+        .map(|review| review.clone())
+        .collect())
 }
 
 /// Request extension specification when multiple matching reviews found.
