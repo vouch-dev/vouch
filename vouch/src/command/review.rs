@@ -1,6 +1,7 @@
 use std::io::Read;
 
 use anyhow::{format_err, Context, Result};
+use common::StoreTransaction;
 use structopt::{self, StructOpt};
 use tempdir;
 
@@ -38,41 +39,21 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
-    // Check index for existing root peer review.
-    log::debug!("Checking index for existing root peer review.");
-    let root_peer =
-        peer::index::get_root(&tx)?.ok_or(format_err!("Cant find root peer. Index corrupt."))?;
-    let reviews = review::index::get(
-        &review::index::Fields {
-            package_name: Some(&args.package_name),
-            package_version: Some(&args.package_version),
-            peer: Some(&root_peer),
-            ..Default::default()
-        },
+    let review = get_existing_review(
+        &args.package_name,
+        &args.package_version,
+        &args.extension_name,
         &tx,
     )?;
 
-    log::debug!("Count existing matching reviews: {}", reviews.len());
-    let reviews = match &args.extension_name {
-        Some(extension_name) => filter_reviews(&extension_name, &reviews)?,
-        None => reviews,
-    };
-    log::debug!(
-        "Count existing matching reviews post filtering: {}",
-        reviews.len()
-    );
-
-    if reviews.len() > 1 {
-        return handle_multiple_matching_reviews(&reviews);
-    }
-
     // Start a new review if existing review unfound.
-    let review = match reviews.first() {
-        Some(review) => review.clone(),
+    let review = match review {
+        Some(review) => review,
         None => {
             log::debug!(
                 "No existing review found. Find package remote metadata and start new review."
             );
+            // TODO: Filter extensions on extension name argument.
             let extensions = extension::get_enabled_extensions()?;
             let package =
                 get_insert_package(&args.package_name, &args.package_version, &extensions, &tx)?
@@ -96,6 +77,43 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     );
     tx.commit(&commit_message)?;
     Ok(())
+}
+
+// Check index for existing root peer review.
+fn get_existing_review(
+    package_name: &str,
+    package_version: &str,
+    extension_name: &Option<String>,
+    tx: &StoreTransaction,
+) -> Result<Option<review::Review>> {
+    log::debug!("Checking index for existing root peer review.");
+    let root_peer =
+        peer::index::get_root(&tx)?.ok_or(format_err!("Cant find root peer. Index corrupt."))?;
+    let reviews = review::index::get(
+        &review::index::Fields {
+            package_name: Some(&package_name),
+            package_version: Some(&package_version),
+            peer: Some(&root_peer),
+            ..Default::default()
+        },
+        &tx,
+    )?;
+
+    log::debug!("Count existing matching reviews: {}", reviews.len());
+    let reviews = match &extension_name {
+        Some(extension_name) => filter_reviews(&extension_name, &reviews)?,
+        None => reviews,
+    };
+    log::debug!(
+        "Count existing matching reviews post filtering: {}",
+        reviews.len()
+    );
+
+    if reviews.len() > 1 {
+        handle_multiple_matching_reviews(&reviews)
+    } else {
+        Ok(reviews.first().cloned())
+    }
 }
 
 /// Filter reviews on given extension.
@@ -125,7 +143,9 @@ fn filter_reviews(
 }
 
 /// Request extension specification when multiple matching reviews found.
-fn handle_multiple_matching_reviews(reviews: &Vec<review::Review>) -> Result<()> {
+fn handle_multiple_matching_reviews(
+    reviews: &Vec<review::Review>,
+) -> Result<Option<review::Review>> {
     assert!(reviews.len() > 1);
 
     let registry_host_names: std::collections::BTreeSet<String> = reviews
