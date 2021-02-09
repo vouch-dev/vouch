@@ -63,7 +63,7 @@ pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
 pub fn insert(
     package_name: &str,
     package_version: &str,
-    package_version_url: &url::Url,
+    registry_human_url: &url::Url,
     source_code_url: &url::Url,
     source_code_hash: &str,
     registry_host_name: &str,
@@ -106,7 +106,7 @@ pub fn insert(
             ":name": package_name,
             ":version": package_version,
             ":registry_id": registry.id,
-            ":registry_human_url": package_version_url.to_string(),
+            ":registry_human_url": registry_human_url.to_string(),
             ":source_code_url": source_code_url.to_string(),
             ":source_code_hash": source_code_hash,
         },
@@ -116,7 +116,7 @@ pub fn insert(
         name: package_name.to_string(),
         version: package_version.to_string(),
         registry: registry,
-        registry_human_url: package_version_url.clone(),
+        registry_human_url: registry_human_url.clone(),
         source_code_url: source_code_url.clone(),
         source_code_hash: source_code_hash.to_string(),
     })

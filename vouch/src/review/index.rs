@@ -274,7 +274,7 @@ mod tests {
         Ok(package::index::insert(
             &format!("test_package_name_{unique_tag}", unique_tag = unique_tag),
             "test_package_version",
-            &url::Url::parse("http://localhost/test_package_version_url")?,
+            &url::Url::parse("http://localhost/test_registry_human_url")?,
             &url::Url::parse("http://localhost/test_source_code_url")?,
             "test_source_code_hash",
             "test_registry_host_name",

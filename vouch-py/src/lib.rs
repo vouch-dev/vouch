@@ -10,7 +10,7 @@ pub struct PyExtension {
     registry_host_names_: Vec<String>,
     root_url_: url::Url,
     package_url_template_: String,
-    package_version_url_template_: String,
+    registry_human_url_template_: String,
 }
 
 impl vouch_lib::extension::Extension for PyExtension {
@@ -20,7 +20,7 @@ impl vouch_lib::extension::Extension for PyExtension {
             registry_host_names_: vec!["pypi.org".to_owned()],
             root_url_: url::Url::parse("https://pypi.org/pypi").unwrap(),
             package_url_template_: "https://pypi.org/pypi/{{package_name}}/".to_string(),
-            package_version_url_template_:
+            registry_human_url_template_:
                 "https://pypi.org/pypi/{{package_name}}/{{package_version}}/".to_string(),
         }
     }
@@ -79,7 +79,7 @@ impl vouch_lib::extension::Extension for PyExtension {
         let found_local_use = dependancy_files.is_some();
 
         // Query remote package registry for given package.
-        let registry_human_url = get_package_version_url(&self, &package_name, &package_version)?;
+        let registry_human_url = get_registry_human_url(&self, &package_name, &package_version)?;
 
         // Currently, only one registry is supported. Therefore simply extract.
         let registry_host_name = self
@@ -104,7 +104,7 @@ impl vouch_lib::extension::Extension for PyExtension {
     }
 }
 
-fn get_package_version_url(
+fn get_registry_human_url(
     extension: &PyExtension,
     package_name: &str,
     package_version: &str,
@@ -112,7 +112,7 @@ fn get_package_version_url(
     // Example return value: https://pypi.org/pypi/numpy/1.18.5/
     let handlebars_registry = handlebars::Handlebars::new();
     let registry_human_url = handlebars_registry.render_template(
-        &extension.package_version_url_template_,
+        &extension.registry_human_url_template_,
         &maplit::btreemap! {
             "package_name" => package_name,
             "package_version" => package_version,

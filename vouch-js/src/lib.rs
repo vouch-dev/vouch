@@ -9,7 +9,7 @@ pub struct JsExtension {
     name_: String,
     registry_host_names_: Vec<String>,
     root_url_: url::Url,
-    package_version_url_template_: String,
+    registry_human_url_template_: String,
 }
 
 impl vouch_lib::extension::Extension for JsExtension {
@@ -18,7 +18,7 @@ impl vouch_lib::extension::Extension for JsExtension {
             name_: "js".to_string(),
             registry_host_names_: vec!["npmjs.com".to_owned()],
             root_url_: url::Url::parse("https://www.npmjs.com").unwrap(),
-            package_version_url_template_:
+            registry_human_url_template_:
                 "https://www.npmjs.com/package/{{package_name}}/v/{{package_version}}".to_string(),
         }
     }
@@ -74,7 +74,7 @@ impl vouch_lib::extension::Extension for JsExtension {
         let found_local_use = dependancy_files.is_some();
 
         // Query remote package registry for given package.
-        let registry_human_url = get_package_version_url(&self, &package_name, &package_version)?;
+        let registry_human_url = get_registry_human_url(&self, &package_name, &package_version)?;
 
         // Currently, only one registry is supported. Therefore simply extract.
         let registry_host_name = self
@@ -99,7 +99,7 @@ impl vouch_lib::extension::Extension for JsExtension {
     }
 }
 
-fn get_package_version_url(
+fn get_registry_human_url(
     extension: &JsExtension,
     package_name: &str,
     package_version: &str,
@@ -107,7 +107,7 @@ fn get_package_version_url(
     // Example return value: https://www.npmjs.com/package/d3/v/6.5.0
     let handlebars_registry = handlebars::Handlebars::new();
     let url = handlebars_registry.render_template(
-        &extension.package_version_url_template_,
+        &extension.registry_human_url_template_,
         &maplit::btreemap! {
             "package_name" => package_name,
             "package_version" => package_version,
