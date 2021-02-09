@@ -80,8 +80,7 @@ impl vouch_lib::extension::Extension for PyExtension {
 
         // Query remote package registry for given package.
         let registry_package_url = get_package_url(&self, &package_name)?;
-        let registry_package_version_url =
-            get_package_version_url(&self, &package_name, &package_version)?;
+        let registry_human_url = get_package_version_url(&self, &package_name, &package_version)?;
 
         // Currently, only one registry is supported. Therefore simply extract.
         let registry_host_name = self
@@ -99,8 +98,7 @@ impl vouch_lib::extension::Extension for PyExtension {
                     found_local_use,
                     registry_host_name: Some(registry_host_name),
                     registry_package_url: registry_package_url.map(|x| x.to_string()),
-                    registry_package_version_url: registry_package_version_url
-                        .map(|x| x.to_string()),
+                    registry_human_url: registry_human_url.map(|x| x.to_string()),
                     source_code_url: None,
                     source_code_hash: None,
                 });
@@ -115,7 +113,7 @@ impl vouch_lib::extension::Extension for PyExtension {
             found_local_use,
             registry_host_name: Some(registry_host_name),
             registry_package_url: Some(registry_package_url.to_string()),
-            registry_package_version_url: registry_package_version_url.map(|x| x.to_string()),
+            registry_human_url: registry_human_url.map(|x| x.to_string()),
             source_code_url: Some(source_code_url.to_string()),
             source_code_hash: Some(source_code_hash),
         })
@@ -141,16 +139,14 @@ fn get_package_version_url(
 ) -> Result<Option<url::Url>> {
     // Example return value: https://pypi.org/pypi/numpy/1.18.5/
     let handlebars_registry = handlebars::Handlebars::new();
-    let registry_package_version_url = handlebars_registry.render_template(
+    let registry_human_url = handlebars_registry.render_template(
         &extension.package_version_url_template_,
         &maplit::btreemap! {
             "package_name" => package_name,
             "package_version" => package_version,
         },
     )?;
-    Ok(Some(url::Url::parse(
-        registry_package_version_url.as_str(),
-    )?))
+    Ok(Some(url::Url::parse(registry_human_url.as_str())?))
 }
 
 fn get_registry_entry_json(registry_package_url: &url::Url) -> Result<serde_json::Value> {

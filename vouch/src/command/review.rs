@@ -144,7 +144,7 @@ fn get_insert_package(
     let (_extension, remote_package_metadata) =
         extension::get_remote_package_metadata(&package_name, &package_version, &extensions)?
             .ok_or(format_err!("Failed to find package in package registries."))?;
-    let package_version_url = match &remote_package_metadata.registry_package_version_url {
+    let package_version_url = match &remote_package_metadata.registry_human_url {
         Some(url) => url::Url::parse(url.as_str())?,
         None => return Ok(None),
     };
