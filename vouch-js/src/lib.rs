@@ -99,14 +99,14 @@ impl vouch_lib::extension::Extension for JsExtension {
                     registry_package_version_url: registry_package_version_url
                         .map(|x| x.to_string()),
                     source_code_url: None,
-                    source_code_sha256: None,
+                    source_code_hash: None,
                 });
             }
         };
 
         let entry_json = get_registry_entry_json(&package_name)?;
         let source_code_url = get_source_code_url(&entry_json, &package_version)?;
-        let source_code_sha256 = get_source_code_sha256(&entry_json, &package_version)?;
+        let source_code_hash = get_source_code_hash(&entry_json, &package_version)?;
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             found_local_use,
@@ -114,7 +114,7 @@ impl vouch_lib::extension::Extension for JsExtension {
             registry_package_url: Some(registry_package_url.to_string()),
             registry_package_version_url: registry_package_version_url.map(|x| x.to_string()),
             source_code_url: Some(source_code_url.to_string()),
-            source_code_sha256: Some(source_code_sha256),
+            source_code_hash: Some(source_code_hash),
         })
     }
 }
@@ -173,7 +173,7 @@ fn get_source_code_url(
     )?)
 }
 
-fn get_source_code_sha256(
+fn get_source_code_hash(
     registry_entry_json: &serde_json::Value,
     package_version: &str,
 ) -> Result<String> {

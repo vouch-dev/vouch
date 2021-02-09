@@ -19,7 +19,7 @@ pub struct Package {
     pub package_registry_url: url::Url,
 
     pub source_code_url: url::Url,
-    pub source_code_sha256: String,
+    pub source_code_hash: String,
 }
 
 impl common::index::Identify for Package {
@@ -50,7 +50,7 @@ pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
             registry_id                INTEGER NOT NULL,
             package_registry_url       TEXT NOT NULL,
             source_code_url            TEXT NOT NULL,
-            source_code_sha256         TEXT NOT NULL,
+            source_code_hash           TEXT NOT NULL,
 
             FOREIGN KEY(registry_id) REFERENCES registry(id)
             UNIQUE(name, version, registry_id)
@@ -65,7 +65,7 @@ pub fn insert(
     package_version: &str,
     package_version_url: &url::Url,
     source_code_url: &url::Url,
-    source_code_sha256: &str,
+    source_code_hash: &str,
     registry_host_name: &str,
     tx: &StoreTransaction,
 ) -> Result<Package> {
@@ -91,7 +91,7 @@ pub fn insert(
                 registry_id,
                 package_registry_url,
                 source_code_url,
-                source_code_sha256
+                source_code_hash
             )
             VALUES (
                 :name,
@@ -99,7 +99,7 @@ pub fn insert(
                 :registry_id,
                 :package_registry_url,
                 :source_code_url,
-                :source_code_sha256
+                :source_code_hash
             )
         ",
         rusqlite::named_params! {
@@ -108,7 +108,7 @@ pub fn insert(
             ":registry_id": registry.id,
             ":package_registry_url": package_version_url.to_string(),
             ":source_code_url": source_code_url.to_string(),
-            ":source_code_sha256": source_code_sha256,
+            ":source_code_hash": source_code_hash,
         },
     )?;
     Ok(Package {
@@ -118,7 +118,7 @@ pub fn insert(
         registry: registry,
         package_registry_url: package_version_url.clone(),
         source_code_url: source_code_url.clone(),
-        source_code_sha256: source_code_sha256.to_string(),
+        source_code_hash: source_code_hash.to_string(),
     })
 }
 
@@ -168,7 +168,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
             registry: registry,
             package_registry_url: url::Url::parse(row.get::<_, String>(4)?.as_str())?,
             source_code_url: url::Url::parse(row.get::<_, String>(5)?.as_str())?,
-            source_code_sha256: row.get(6)?,
+            source_code_hash: row.get(6)?,
         };
         packages.insert(package);
     }
@@ -189,7 +189,7 @@ pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<Ha
             &package.version,
             &package.package_registry_url,
             &package.source_code_url,
-            &package.source_code_sha256,
+            &package.source_code_hash,
             &package.registry.host_name,
             &tx,
         )?;

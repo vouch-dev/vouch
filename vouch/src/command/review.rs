@@ -156,8 +156,8 @@ fn get_insert_package(
             .as_str(),
     )?;
 
-    let source_code_sha256 = &remote_package_metadata
-        .source_code_sha256
+    let source_code_hash = &remote_package_metadata
+        .source_code_hash
         .clone()
         .ok_or(format_err!("Could not find source code SHA256 hash."))?;
 
@@ -184,7 +184,7 @@ fn get_insert_package(
             &package_version,
             &package_version_url,
             &source_code_url,
-            &source_code_sha256,
+            &source_code_hash,
             &registry_host_name,
             &tx,
         )?,

@@ -19,7 +19,7 @@ pub struct RemotePackageMetadata {
     pub registry_package_url: Option<String>,
     pub registry_package_version_url: Option<String>,
     pub source_code_url: Option<String>,
-    pub source_code_sha256: Option<String>,
+    pub source_code_hash: Option<String>,
 }
 
 pub trait Extension: Send + Sync {

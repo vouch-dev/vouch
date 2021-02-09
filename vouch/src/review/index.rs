@@ -276,7 +276,7 @@ mod tests {
             "test_package_version",
             &url::Url::parse("http://localhost/test_package_version_url")?,
             &url::Url::parse("http://localhost/test_source_code_url")?,
-            "test_source_code_sha256",
+            "test_source_code_hash",
             "test_registry_host_name",
             &tx,
         )?)
