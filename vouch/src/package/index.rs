@@ -16,7 +16,7 @@ pub struct Package {
     pub version: String,
     pub registry: registry::index::Registry,
 
-    pub package_registry_url: url::Url,
+    pub registry_human_url: url::Url,
 
     pub source_code_url: url::Url,
     pub source_code_hash: String,
@@ -48,7 +48,7 @@ pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
             name                       TEXT NOT NULL,
             version                    TEXT NOT NULL,
             registry_id                INTEGER NOT NULL,
-            package_registry_url       TEXT NOT NULL,
+            registry_human_url         TEXT NOT NULL,
             source_code_url            TEXT NOT NULL,
             source_code_hash           TEXT NOT NULL,
 
@@ -89,7 +89,7 @@ pub fn insert(
                 name,
                 version,
                 registry_id,
-                package_registry_url,
+                registry_human_url,
                 source_code_url,
                 source_code_hash
             )
@@ -97,7 +97,7 @@ pub fn insert(
                 :name,
                 :version,
                 :registry_id,
-                :package_registry_url,
+                :registry_human_url,
                 :source_code_url,
                 :source_code_hash
             )
@@ -106,7 +106,7 @@ pub fn insert(
             ":name": package_name,
             ":version": package_version,
             ":registry_id": registry.id,
-            ":package_registry_url": package_version_url.to_string(),
+            ":registry_human_url": package_version_url.to_string(),
             ":source_code_url": source_code_url.to_string(),
             ":source_code_hash": source_code_hash,
         },
@@ -116,7 +116,7 @@ pub fn insert(
         name: package_name.to_string(),
         version: package_version.to_string(),
         registry: registry,
-        package_registry_url: package_version_url.clone(),
+        registry_human_url: package_version_url.clone(),
         source_code_url: source_code_url.clone(),
         source_code_hash: source_code_hash.to_string(),
     })
@@ -166,7 +166,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
             name: row.get(1)?,
             version: row.get(2)?,
             registry: registry,
-            package_registry_url: url::Url::parse(row.get::<_, String>(4)?.as_str())?,
+            registry_human_url: url::Url::parse(row.get::<_, String>(4)?.as_str())?,
             source_code_url: url::Url::parse(row.get::<_, String>(5)?.as_str())?,
             source_code_hash: row.get(6)?,
         };
@@ -187,7 +187,7 @@ pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<Ha
         let package = insert(
             &package.name,
             &package.version,
-            &package.package_registry_url,
+            &package.registry_human_url,
             &package.source_code_url,
             &package.source_code_hash,
             &package.registry.host_name,
