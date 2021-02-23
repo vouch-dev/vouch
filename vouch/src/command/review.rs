@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::io::Read;
 
 use anyhow::{format_err, Context, Result};
@@ -29,12 +30,14 @@ pub struct Arguments {
 
     /// Specify an extension for handling the package.
     /// Example values: py, js, rs
-    #[structopt(long = "extension", short = "e")]
-    pub extension_name: Option<String>,
+    #[structopt(long = "extension", short = "e", name = "name")]
+    pub extension_names: Option<Vec<String>>,
 }
 
 pub fn run_command(args: &Arguments) -> Result<()> {
     // TODO: Add gpg signing.
+
+    let extension_names = handle_extension_names_arg(&args.extension_names)?;
 
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
@@ -42,7 +45,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let review = get_existing_review(
         &args.package_name,
         &args.package_version,
-        &args.extension_name,
+        &extension_names,
         &tx,
     )?;
 
@@ -53,14 +56,13 @@ pub fn run_command(args: &Arguments) -> Result<()> {
             log::debug!(
                 "No existing review found. Find package remote metadata and start new review."
             );
-            // TODO: Filter extensions on extension name argument.
-            let extensions = extension::get_enabled_extensions()?;
-            let package =
-                get_insert_package(&args.package_name, &args.package_version, &extensions, &tx)?
-                    .ok_or(format_err!(
-                        "Failed to derive package metadata from extension(s)."
-                    ))?;
-            get_insert_unset_review(&package, &tx)?
+
+            get_new_review(
+                &args.package_name,
+                &args.package_version,
+                &extension_names,
+                &tx,
+            )?
         }
     };
 
@@ -79,11 +81,51 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     Ok(())
 }
 
+/// Check given extensions are enabled. If not specified select all enabled extensions.
+fn handle_extension_names_arg(extension_names: &Option<Vec<String>>) -> Result<BTreeSet<String>> {
+    let names = match &extension_names {
+        Some(extension_names) => {
+            let disabled_names: Vec<_> = extension_names
+                .iter()
+                .cloned()
+                .filter(|name| !extension::is_enabled(&name).unwrap_or(false))
+                .collect();
+            if !disabled_names.is_empty() {
+                return Err(format_err!(
+                    "The following disabled extensions were given: {}",
+                    disabled_names.join(", ")
+                ));
+            } else {
+                extension_names.into_iter().cloned().collect()
+            }
+        }
+        None => extension::get_enabled_names()?,
+    };
+    log::debug!("Using extensions: {:?}", names);
+    Ok(names)
+}
+
+fn get_new_review(
+    package_name: &str,
+    package_version: &str,
+    extension_names: &BTreeSet<String>,
+    tx: &StoreTransaction,
+) -> Result<review::Review> {
+    let extensions = extension::get_enabled_extensions()?
+        .into_iter()
+        .filter(|extension| extension_names.contains(&extension.name()))
+        .collect();
+    let package = get_insert_package(&package_name, &package_version, &extensions, &tx)?.ok_or(
+        format_err!("Failed to derive package metadata from extension(s)."),
+    )?;
+    get_insert_unset_review(&package, &tx)
+}
+
 // Check index for existing root peer review.
 fn get_existing_review(
     package_name: &str,
     package_version: &str,
-    extension_name: &Option<String>,
+    extension_names: &BTreeSet<String>,
     tx: &StoreTransaction,
 ) -> Result<Option<review::Review>> {
     log::debug!("Checking index for existing root peer review.");
@@ -100,10 +142,7 @@ fn get_existing_review(
     )?;
 
     log::debug!("Count existing matching reviews: {}", reviews.len());
-    let reviews = match &extension_name {
-        Some(extension_name) => filter_reviews(&extension_name, &reviews)?,
-        None => reviews,
-    };
+    let reviews = filter_reviews(&reviews, &extension_names)?;
     log::debug!(
         "Count existing matching reviews post filtering: {}",
         reviews.len()
@@ -118,17 +157,17 @@ fn get_existing_review(
 
 /// Filter reviews on given extension.
 fn filter_reviews(
-    target_extension_name: &str,
     reviews: &Vec<review::Review>,
+    target_extension_names: &BTreeSet<String>,
 ) -> Result<Vec<review::Review>> {
-    // Find registry host names which are handled by the given extension.
+    // Find registry host names which are handled by the given extensions.
     let config = crate::common::config::Config::load()?;
     let extension_supported_registry_host_names: std::collections::BTreeSet<String> = config
         .extensions
         .supported_package_registries
         .iter()
         .filter(|(_registry_host_name, extension_name)| {
-            extension_name.as_str() == target_extension_name
+            target_extension_names.contains(extension_name.as_str())
         })
         .map(|(registry_host_name, _extension_name)| registry_host_name.clone())
         .collect();

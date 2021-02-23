@@ -1,6 +1,6 @@
 use anyhow::{format_err, Result};
 use crossbeam_utils;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use vouch_lib::extension::Extension;
 
 use crate::common;
@@ -91,6 +91,25 @@ pub fn identify_local_dependancies(
     .unwrap()
 }
 
+/// Returns a set of all enabled installed extensions by names.
+pub fn get_enabled_names() -> Result<BTreeSet<String>> {
+    let config = common::config::Config::load()?;
+    Ok(config
+        .extensions
+        .enabled
+        .into_iter()
+        .filter(|(_name, enabled_flag)| *enabled_flag)
+        .map(|(name, _enabled_flag)| name.clone())
+        .collect())
+}
+
+/// Given an extension's name, returns true if the extension is enabled. Otherwise returns false.
+pub fn is_enabled(name: &str) -> Result<bool> {
+    let config = common::config::Config::load()?;
+    Ok(*config.extensions.enabled.get(name).unwrap_or(&false))
+}
+
+/// Return handles to all known extensions.
 pub fn get_all_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>> {
     log::debug!("Identifying all extensions.");
 
@@ -107,6 +126,7 @@ pub fn get_all_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extensio
     Ok(all_extensions)
 }
 
+/// Returns enabled extensions.
 pub fn get_enabled_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>> {
     log::debug!("Identifying enabled extensions.");
     let mut all_extensions = get_all_extensions()?;
@@ -127,6 +147,7 @@ pub fn get_enabled_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Exte
     Ok(all_extensions)
 }
 
+/// Update config with current set of extensions.
 fn update_config(
     config: &mut common::config::Config,
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
