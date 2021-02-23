@@ -92,20 +92,18 @@ pub fn identify_local_dependancies(
 }
 
 /// Returns a set of all enabled installed extensions by names.
-pub fn get_enabled_names() -> Result<BTreeSet<String>> {
-    let config = common::config::Config::load()?;
+pub fn get_enabled_names(config: &common::config::Config) -> Result<BTreeSet<String>> {
     Ok(config
         .extensions
         .enabled
-        .into_iter()
-        .filter(|(_name, enabled_flag)| *enabled_flag)
+        .iter()
+        .filter(|(_name, enabled_flag)| **enabled_flag)
         .map(|(name, _enabled_flag)| name.clone())
         .collect())
 }
 
 /// Given an extension's name, returns true if the extension is enabled. Otherwise returns false.
-pub fn is_enabled(name: &str) -> Result<bool> {
-    let config = common::config::Config::load()?;
+pub fn is_enabled(name: &str, config: &common::config::Config) -> Result<bool> {
     Ok(*config.extensions.enabled.get(name).unwrap_or(&false))
 }
 
@@ -127,13 +125,11 @@ pub fn get_all_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extensio
 }
 
 /// Returns enabled extensions.
-pub fn get_enabled_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>> {
+pub fn get_enabled_extensions(
+    config: &common::config::Config,
+) -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>> {
     log::debug!("Identifying enabled extensions.");
-    let mut all_extensions = get_all_extensions()?;
-
-    let mut config = common::config::Config::load()?;
-    update_config(&mut config, &all_extensions)?;
-    all_extensions = all_extensions
+    let extensions = get_all_extensions()?
         .into_iter()
         .filter(|extension| {
             *config
@@ -144,7 +140,7 @@ pub fn get_enabled_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Exte
         })
         .collect();
 
-    Ok(all_extensions)
+    Ok(extensions)
 }
 
 /// Update config with current set of extensions.

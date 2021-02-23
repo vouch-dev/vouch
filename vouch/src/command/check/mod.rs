@@ -1,9 +1,9 @@
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
-use crate::extension;
 use crate::review;
 use crate::store;
+use crate::{common, extension};
 
 mod report;
 mod table;
@@ -25,13 +25,13 @@ pub struct Arguments {
 }
 
 pub fn run_command(args: &Arguments) -> Result<()> {
-    // pager::Pager::with_default_pager("more").setup();
+    let config = common::config::Config::load()?;
     match &args.package_name {
         Some(package_name) => {
             single_dependancy_report(&package_name, &args.package_version)?;
         }
         None => {
-            local_dependancies_table()?;
+            local_dependancies_table(&config)?;
         }
     }
     Ok(())
@@ -96,11 +96,11 @@ fn single_dependancy_report(package_name: &str, package_version: &Option<String>
     Ok(())
 }
 
-fn local_dependancies_table() -> Result<()> {
+fn local_dependancies_table(config: &common::config::Config) -> Result<()> {
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
-    let extensions = extension::get_enabled_extensions()?;
+    let extensions = extension::get_enabled_extensions(&config)?;
     let working_directory = std::env::current_dir()?;
     log::debug!("Current working directory: {}", working_directory.display());
 

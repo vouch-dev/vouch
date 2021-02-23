@@ -37,10 +37,11 @@ pub struct Arguments {
 pub fn run_command(args: &Arguments) -> Result<()> {
     // TODO: Add gpg signing.
 
-    let extension_names = handle_extension_names_arg(&args.extension_names)?;
-
+    let config = common::config::Config::load()?;
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
+
+    let extension_names = handle_extension_names_arg(&args.extension_names, &config)?;
 
     let review = get_existing_review(
         &args.package_name,
@@ -61,6 +62,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
                 &args.package_name,
                 &args.package_version,
                 &extension_names,
+                &config,
                 &tx,
             )?
         }
@@ -82,13 +84,16 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 }
 
 /// Check given extensions are enabled. If not specified select all enabled extensions.
-fn handle_extension_names_arg(extension_names: &Option<Vec<String>>) -> Result<BTreeSet<String>> {
+fn handle_extension_names_arg(
+    extension_names: &Option<Vec<String>>,
+    config: &common::config::Config,
+) -> Result<BTreeSet<String>> {
     let names = match &extension_names {
         Some(extension_names) => {
             let disabled_names: Vec<_> = extension_names
                 .iter()
                 .cloned()
-                .filter(|name| !extension::is_enabled(&name).unwrap_or(false))
+                .filter(|name| !extension::is_enabled(&name, &config).unwrap_or(false))
                 .collect();
             if !disabled_names.is_empty() {
                 return Err(format_err!(
@@ -99,7 +104,7 @@ fn handle_extension_names_arg(extension_names: &Option<Vec<String>>) -> Result<B
                 extension_names.into_iter().cloned().collect()
             }
         }
-        None => extension::get_enabled_names()?,
+        None => extension::get_enabled_names(&config)?,
     };
     log::debug!("Using extensions: {:?}", names);
     Ok(names)
@@ -109,9 +114,10 @@ fn get_new_review(
     package_name: &str,
     package_version: &str,
     extension_names: &BTreeSet<String>,
+    config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<review::Review> {
-    let extensions = extension::get_enabled_extensions()?
+    let extensions = extension::get_enabled_extensions(&config)?
         .into_iter()
         .filter(|extension| extension_names.contains(&extension.name()))
         .collect();
