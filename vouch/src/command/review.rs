@@ -36,6 +36,7 @@ pub struct Arguments {
 
 pub fn run_command(args: &Arguments) -> Result<()> {
     // TODO: Add gpg signing.
+    extension::update_config()?;
 
     let config = common::config::Config::load()?;
     let mut store = store::Store::from_root()?;

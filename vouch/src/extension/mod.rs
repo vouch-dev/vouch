@@ -144,10 +144,10 @@ pub fn get_enabled_extensions(
 }
 
 /// Update config with current set of extensions.
-fn update_config(
-    config: &mut common::config::Config,
-    extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
-) -> Result<()> {
+pub fn update_config() -> Result<()> {
+    let mut config = common::config::Config::load()?;
+    let extensions = get_all_extensions()?;
+
     let configured_names: std::collections::BTreeSet<String> = config
         .extensions
         .enabled
