@@ -44,29 +44,23 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 
     let extension_names = handle_extension_names_arg(&args.extension_names, &config)?;
 
-    let review = get_existing_review(
+    let review = if let Some(review) = get_existing_review(
         &args.package_name,
         &args.package_version,
         &extension_names,
         &tx,
-    )?;
-
-    // Start a new review if existing review unfound.
-    let review = match review {
-        Some(review) => review,
-        None => {
-            log::debug!(
-                "No existing review found. Find package remote metadata and start new review."
-            );
-
-            get_new_review(
-                &args.package_name,
-                &args.package_version,
-                &extension_names,
-                &config,
-                &tx,
-            )?
-        }
+    )? {
+        log::debug!("Existing review found.");
+        review
+    } else {
+        log::debug!("No existing review found. Starting new review.");
+        get_new_review(
+            &args.package_name,
+            &args.package_version,
+            &extension_names,
+            &config,
+            &tx,
+        )?
     };
 
     let review = add_user_input(&review)?;
