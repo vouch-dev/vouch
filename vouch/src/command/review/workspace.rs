@@ -17,6 +17,7 @@ pub fn setup(package: &package::Package) -> Result<std::path::PathBuf> {
     download_archive(&package.source_code_url, &archive_path)?;
     let workspace_directory = match extension.as_str() {
         "zip" => extract_zip(&archive_path, &package_unique_directory)?,
+        "tgz" => extract_tar_gz(&archive_path, &package_unique_directory)?,
         _ => unimplemented!("Unsupported archive file type: {}", extension),
     };
     std::fs::remove_file(&archive_path)?;
@@ -121,6 +122,56 @@ fn extract_zip(
     }
     log::debug!("Archive extraction complete.");
     Ok(extracted_directory)
+}
+
+fn extract_tar_gz(
+    archive_path: &std::path::PathBuf,
+    destination_directory: &std::path::PathBuf,
+) -> Result<std::path::PathBuf> {
+    log::debug!("Extracting tar gz archive: {}", archive_path.display());
+
+    let top_directory_name = get_tar_top_directory_name(&archive_path)?;
+    log::debug!(
+        "Found archive top level directory name: {}",
+        top_directory_name
+    );
+
+    let file = std::fs::File::open(archive_path)?;
+    let decoder = flate2::read::GzDecoder::new(file);
+    let mut archive = tar::Archive::new(decoder);
+
+    let workspace_directory = destination_directory.join(top_directory_name);
+
+    archive.unpack(&destination_directory)?;
+
+    log::debug!("Archive extraction complete.");
+    Ok(workspace_directory)
+}
+
+/// Returns the top level directory name from within the given archive.
+///
+/// This function advances the archive's position counter.
+/// The archive can not be unpacked after this operation, it is therefore dropped.
+fn get_tar_top_directory_name(archive_path: &std::path::PathBuf) -> Result<String> {
+    let file = std::fs::File::open(archive_path)?;
+    let decoder = flate2::read::GzDecoder::new(file);
+    let mut archive = tar::Archive::new(decoder);
+
+    let first_archive_entry = archive
+        .entries()?
+        .nth(0)
+        .ok_or(format_err!("Archive empty."))??;
+    let first_archive_entry = (*first_archive_entry.path()?).to_path_buf();
+
+    let top_directory_name = first_archive_entry
+        .components()
+        .next()
+        .ok_or(format_err!("Archive empty."))?
+        .as_os_str()
+        .to_str()
+        .ok_or(format_err!("Failed to parse archive's first path."))?;
+
+    Ok(top_directory_name.to_string())
 }
 
 fn get_workspace_directory_name(package: &package::Package) -> Result<std::path::PathBuf> {
