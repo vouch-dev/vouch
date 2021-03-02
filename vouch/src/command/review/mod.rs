@@ -75,12 +75,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     review::index::update(&review, &tx)?;
     review::fs::add(&review, None)?;
 
-    let commit_message = format!(
-        "Add review: {registry_host_name}/{package_name}/{package_version}",
-        registry_host_name = review.package.registry.host_name,
-        package_name = review.package.name,
-        package_version = review.package.version,
-    );
+    let commit_message = get_commit_message(&review.package);
     tx.commit(&commit_message)?;
     Ok(())
 }
@@ -294,4 +289,13 @@ fn get_insert_unset_review(
         &tx,
     )?;
     Ok(unset_review)
+}
+
+fn get_commit_message(package: &package::Package) -> String {
+    format!(
+        "Add review: {registry_host_name}/{package_name}/{package_version}",
+        registry_host_name = package.registry.host_name,
+        package_name = package.name,
+        package_version = package.version,
+    )
 }
