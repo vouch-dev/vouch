@@ -35,4 +35,6 @@ serde_yaml = "0.8.13"
 bincode = "1.2.1"
 rusqlite = { version = "0.23.1", features = ["bundled"] }
 
+zip = "0.5.10"
+
 prettytable-rs = "0.8.0"

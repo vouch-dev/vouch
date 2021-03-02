@@ -12,6 +12,7 @@ use crate::review;
 use crate::store;
 
 mod summary;
+mod workspace;
 
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
@@ -62,6 +63,12 @@ pub fn run_command(args: &Arguments) -> Result<()> {
             &tx,
         )?
     };
+
+    let workspace_directory = match workspace::get_existing_ongoing_workspace(&review.package)? {
+        Some(workspace_directory) => workspace_directory,
+        None => workspace::setup(&review.package)?,
+    };
+    workspace::run_review_tool(&workspace_directory)?;
 
     let review = summary::add_user_input(&review)?;
 
