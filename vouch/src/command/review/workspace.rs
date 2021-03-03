@@ -15,11 +15,14 @@ pub fn setup(package: &package::Package) -> Result<std::path::PathBuf> {
     let archive_path = package_unique_directory.join(format!("package.{}", extension));
 
     download_archive(&package.source_code_url, &archive_path)?;
+
+    log::debug!("Extracting archive: {}", archive_path.display());
     let workspace_directory = match extension.as_str() {
         "zip" => extract_zip(&archive_path, &package_unique_directory)?,
-        "tgz" => extract_tar_gz(&archive_path, &package_unique_directory)?,
+        "tgz" | "tar.gz" => extract_tar_gz(&archive_path, &package_unique_directory)?,
         _ => unimplemented!("Unsupported archive file type: {}", extension),
     };
+    log::debug!("Archive extraction complete.");
     std::fs::remove_file(&archive_path)?;
 
     let workspace_directory = normalize_workspace_directory_name(
@@ -33,7 +36,16 @@ pub fn setup(package: &package::Package) -> Result<std::path::PathBuf> {
 
 /// Extract and return archive file extension from archive URL.
 fn get_archive_extension(archive_url: &url::Url) -> Result<String> {
-    Ok(std::path::Path::new(archive_url.path())
+    let path = std::path::Path::new(archive_url.path());
+    if path
+        .to_str()
+        .ok_or(format_err!("Failed to parse URL path as str."))?
+        .ends_with(".tar.gz")
+    {
+        return Ok("tar.gz".to_string());
+    }
+
+    Ok(path
         .extension()
         .ok_or(format_err!(
             "Failed to parse file extension from archive URL: {}",
@@ -84,8 +96,6 @@ fn extract_zip(
     archive_path: &std::path::PathBuf,
     destination_directory: &std::path::PathBuf,
 ) -> Result<std::path::PathBuf> {
-    log::debug!("Extracting zip archive: {}", archive_path.display());
-
     let file = std::fs::File::open(&archive_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
@@ -120,16 +130,16 @@ fn extract_zip(
             std::io::copy(&mut file, &mut output_file)?;
         }
     }
-    log::debug!("Archive extraction complete.");
     Ok(extracted_directory)
 }
 
+/// Extract .tar.gz archives.
+///
+/// Note that .tgz archives are the same as .tar.gz archives.
 fn extract_tar_gz(
     archive_path: &std::path::PathBuf,
     destination_directory: &std::path::PathBuf,
 ) -> Result<std::path::PathBuf> {
-    log::debug!("Extracting tar gz archive: {}", archive_path.display());
-
     let top_directory_name = get_tar_top_directory_name(&archive_path)?;
     log::debug!(
         "Found archive top level directory name: {}",
@@ -143,8 +153,6 @@ fn extract_tar_gz(
     let workspace_directory = destination_directory.join(top_directory_name);
 
     archive.unpack(&destination_directory)?;
-
-    log::debug!("Archive extraction complete.");
     Ok(workspace_directory)
 }
 
@@ -224,4 +232,18 @@ pub fn run_review_tool(workspace_directory: &std::path::PathBuf) -> Result<()> {
 
     log::debug!("Review tool exit complete.");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_blah() -> Result<()> {
+        let result =
+            get_archive_extension(&url::Url::parse("https://localhost/d3/d3-4.10.0.tar.gz")?)?;
+        let expected = "tar.gz".to_string();
+        assert!(result == expected, format!("unexpected result: {}", result));
+        Ok(())
+    }
 }
