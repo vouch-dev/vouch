@@ -245,21 +245,8 @@ pub fn get_existing_ongoing_workspace(
 
 pub fn run_review_tool(workspace_directory: &std::path::PathBuf) -> Result<()> {
     log::debug!("Running review tool.");
-
-    let mut child = std::process::Command::new("code")
-        .args(vec![
-            "--wait",
-            "--new-window",
-            workspace_directory.to_str().ok_or(format_err!(
-                "Failed to convert PathBuf to str: {}",
-                workspace_directory.display()
-            ))?,
-        ])
-        .current_dir(workspace_directory)
-        .spawn()
-        .expect("Failed to start vscode.");
-    let _result = child.wait()?;
-
+    // TODO: Check vscode installed and vscode-vouch extension installed.
+    vscode::run(&workspace_directory)?;
     log::debug!("Review tool exit complete.");
     Ok(())
 }
