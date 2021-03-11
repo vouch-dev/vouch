@@ -5,6 +5,8 @@ use crate::common;
 use crate::package;
 use crate::review;
 
+mod vscode;
+
 /// Setup review workspace.
 ///
 /// Download and unpack package source code for review.
@@ -31,7 +33,35 @@ pub fn setup(package: &package::Package) -> Result<std::path::PathBuf> {
         &package,
     )?;
 
+    let reviews_directory = vscode::setup(&workspace_directory)?;
+    add_empty_review(&package, &reviews_directory)?;
+
     Ok(workspace_directory)
+}
+
+fn add_empty_review(
+    package: &package::Package,
+    reviews_directory: &std::path::PathBuf,
+) -> Result<()> {
+    let detailed_review = review::DetailedReview {
+        title: "local".to_string(),
+        description: format!("Package name-version: {}-{}", package.name, package.version),
+        is_primary: Some(true),
+        comments: Vec::new(),
+    };
+
+    let review_file_path = reviews_directory.join("local.review");
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .append(false)
+        .create(true)
+        .open(&review_file_path)
+        .context(format!(
+            "Can't open/create file for writing: {}",
+            review_file_path.display()
+        ))?;
+    file.write_all(serde_json::to_string_pretty(&detailed_review)?.as_bytes())?;
+    Ok(())
 }
 
 /// Extract and return archive file extension from archive URL.
