@@ -5,8 +5,6 @@ use crate::common;
 use crate::package;
 use crate::review;
 
-mod vscode;
-
 /// Setup review workspace.
 ///
 /// Download and unpack package source code for review.
@@ -33,7 +31,7 @@ pub fn setup(package: &package::Package) -> Result<std::path::PathBuf> {
         &package,
     )?;
 
-    let reviews_directory = vscode::setup(&workspace_directory)?;
+    let reviews_directory = review::tool::setup_workspace(&workspace_directory)?;
     add_empty_review(&package, &reviews_directory)?;
 
     Ok(workspace_directory)
@@ -243,20 +241,12 @@ pub fn get_existing_ongoing_workspace(
     }
 }
 
-pub fn run_review_tool(workspace_directory: &std::path::PathBuf) -> Result<()> {
-    log::debug!("Running review tool.");
-    // TODO: Check vscode installed and vscode-vouch extension installed.
-    vscode::run(&workspace_directory)?;
-    log::debug!("Review tool exit complete.");
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_blah() -> Result<()> {
+    fn test_correct_extension_extracted_for_tar_gz() -> Result<()> {
         let result =
             get_archive_extension(&url::Url::parse("https://localhost/d3/d3-4.10.0.tar.gz")?)?;
         let expected = "tar.gz".to_string();

@@ -37,9 +37,12 @@ pub struct Arguments {
 
 pub fn run_command(args: &Arguments) -> Result<()> {
     // TODO: Add gpg signing.
-    extension::update_config()?;
 
-    let config = common::config::Config::load()?;
+    let mut config = common::config::Config::load()?;
+    extension::update_config(&mut config)?;
+    review::tool::check_install(&mut config)?;
+    let config = config;
+
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
@@ -68,7 +71,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         Some(workspace_directory) => workspace_directory,
         None => workspace::setup(&review.package)?,
     };
-    workspace::run_review_tool(&workspace_directory)?;
+    review::tool::run(&workspace_directory, &config)?;
 
     let review = summary::add_user_input(&review)?;
 

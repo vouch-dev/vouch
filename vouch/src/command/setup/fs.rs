@@ -112,6 +112,9 @@ fn setup_config(
         let mut config = crate::common::config::Config::default();
 
         config.core.root_git_url = remote_repository_url.clone();
+        config.review_tool.name = "vscode".to_string();
+        config.review_tool.install_check = false;
+
         for extension in extension::get_all_extensions()? {
             config.extensions.enabled.insert(extension.name(), true);
 

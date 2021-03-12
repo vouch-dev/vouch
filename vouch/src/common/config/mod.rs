@@ -2,12 +2,17 @@ use anyhow::{format_err, Context, Result};
 
 mod core;
 mod extensions;
+mod review_tool;
 
 #[derive(
     Debug, Clone, Default, Ord, PartialOrd, Eq, PartialEq, serde::Serialize, serde::Deserialize,
 )]
 pub struct Config {
     pub core: core::Core,
+
+    #[serde(rename = "review-tool")]
+    pub review_tool: review_tool::ReviewTool,
+
     pub extensions: extensions::Extensions,
 }
 
@@ -45,6 +50,8 @@ impl Config {
             Ok(core::set(&mut self.core, &name, &value)?)
         } else if extensions::is_match(name)? {
             Ok(extensions::set(&mut self.extensions, &name, &value)?)
+        } else if review_tool::is_match(name)? {
+            Ok(review_tool::set(&mut self.review_tool, &name, &value)?)
         } else {
             Err(format_err!(name_error_message.clone()))
         };
@@ -57,6 +64,8 @@ impl Config {
             Ok(core::get(&self.core, &name)?)
         } else if extensions::is_match(name)? {
             Ok(extensions::get(&self.extensions, &name)?)
+        } else if review_tool::is_match(name)? {
+            Ok(review_tool::get(&self.review_tool, &name)?)
         } else {
             Err(format_err!(name_error_message.clone()))
         };

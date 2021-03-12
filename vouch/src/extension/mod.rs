@@ -144,8 +144,9 @@ pub fn get_enabled_extensions(
 }
 
 /// Update config with current set of extensions.
-pub fn update_config() -> Result<()> {
-    let mut config = common::config::Config::load()?;
+pub fn update_config(config: &mut common::config::Config) -> Result<()> {
+    log::debug!("Discover extensions and update config.");
+
     let extensions = get_all_extensions()?;
 
     let configured_names: std::collections::BTreeSet<String> = config
