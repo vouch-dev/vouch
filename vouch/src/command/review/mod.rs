@@ -67,7 +67,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         )?
     };
 
-    let workspace_directory = match workspace::get_existing_ongoing_workspace(&review.package)? {
+    let workspace_directory = match workspace::get_ongoing_workspace(&review.package)? {
         Some(workspace_directory) => workspace_directory,
         None => workspace::setup(&review.package)?,
     };

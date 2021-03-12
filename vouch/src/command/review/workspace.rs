@@ -228,9 +228,7 @@ fn normalize_workspace_directory_name(
 }
 
 /// Returns optional path to existing review workspace directory.
-pub fn get_existing_ongoing_workspace(
-    package: &package::Package,
-) -> Result<Option<std::path::PathBuf>> {
+pub fn get_ongoing_workspace(package: &package::Package) -> Result<Option<std::path::PathBuf>> {
     let package_unique_directory = get_unique_package_directory(&package)?;
     let workspace_directory =
         package_unique_directory.join(get_workspace_directory_name(&package)?);
