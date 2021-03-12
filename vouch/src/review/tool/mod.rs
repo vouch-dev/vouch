@@ -37,8 +37,8 @@ pub fn run(
     Ok(())
 }
 
-/// Setup workspace for review.
-pub fn setup_workspace(workspace_directory: &std::path::PathBuf) -> Result<std::path::PathBuf> {
-    let review_directory = vscode::setup_workspace(&workspace_directory)?;
+/// Setup reviews directory within workspace.
+pub fn setup_reviews_directory(workspace_directory: &std::path::PathBuf) -> Result<std::path::PathBuf> {
+    let review_directory = vscode::setup_reviews_directory(&workspace_directory)?;
     Ok(review_directory)
 }
