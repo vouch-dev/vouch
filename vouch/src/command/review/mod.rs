@@ -67,11 +67,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         )?
     };
 
-    let workspace_directory = match workspace::get_ongoing_workspace(&review.package)? {
-        Some(workspace_directory) => workspace_directory,
-        None => workspace::setup(&review.package)?,
-    };
-
+    let workspace_directory = workspace::ensure(&review.package)?;
     let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
     review::detailed::ensure_review_file(&review.package, &reviews_directory)?;
 

@@ -5,10 +5,15 @@ use crate::common;
 use crate::package;
 use crate::review;
 
-/// Setup review workspace.
+/// Ensure review workspace setup is complete.
 ///
 /// Download and unpack package source code for review.
-pub fn setup(package: &package::Package) -> Result<std::path::PathBuf> {
+/// If ongoing workspace exists, return directory path.
+pub fn ensure(package: &package::Package) -> Result<std::path::PathBuf> {
+    if let Some(workspace_directory) = get_ongoing_workspace_directory(&package)? {
+        return Ok(workspace_directory);
+    }
+
     let extension = get_archive_extension(&package.source_code_url)?;
 
     let package_unique_directory = setup_unique_package_directory(&package)?;
@@ -32,6 +37,20 @@ pub fn setup(package: &package::Package) -> Result<std::path::PathBuf> {
     )?;
 
     Ok(workspace_directory)
+}
+
+/// Returns optional path to existing review workspace directory.
+fn get_ongoing_workspace_directory(
+    package: &package::Package,
+) -> Result<Option<std::path::PathBuf>> {
+    let package_unique_directory = get_unique_package_directory(&package)?;
+    let workspace_directory =
+        package_unique_directory.join(get_workspace_directory_name(&package)?);
+    if workspace_directory.exists() {
+        Ok(Some(workspace_directory))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Extract and return archive file extension from archive URL.
@@ -197,18 +216,6 @@ fn normalize_workspace_directory_name(
     let target_directory = parent_directory.join(get_workspace_directory_name(&package)?);
     std::fs::rename(workspace_directory, &target_directory)?;
     Ok(target_directory)
-}
-
-/// Returns optional path to existing review workspace directory.
-pub fn get_ongoing_workspace(package: &package::Package) -> Result<Option<std::path::PathBuf>> {
-    let package_unique_directory = get_unique_package_directory(&package)?;
-    let workspace_directory =
-        package_unique_directory.join(get_workspace_directory_name(&package)?);
-    if workspace_directory.exists() {
-        Ok(Some(workspace_directory))
-    } else {
-        Ok(None)
-    }
 }
 
 #[cfg(test)]
