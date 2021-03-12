@@ -71,10 +71,13 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         Some(workspace_directory) => workspace_directory,
         None => workspace::setup(&review.package)?,
     };
+
+    let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
+    review::detailed::ensure_review_file(&review.package, &reviews_directory)?;
+
     review::tool::run(&workspace_directory, &config)?;
 
     let review = summary::add_user_input(&review)?;
-
     review::index::update(&review, &tx)?;
     review::fs::add(&review, None)?;
 

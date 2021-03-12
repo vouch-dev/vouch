@@ -39,7 +39,15 @@ pub struct DetailedReview {
     pub comments: Vec<Comment>,
 }
 
-pub fn add_empty(package: &package::Package, reviews_directory: &std::path::PathBuf) -> Result<()> {
+pub fn ensure_review_file(
+    package: &package::Package,
+    reviews_directory: &std::path::PathBuf,
+) -> Result<()> {
+    let review_file_path = reviews_directory.join("local.review");
+    if review_file_path.exists() {
+        return Ok(());
+    }
+
     let detailed_review = review::DetailedReview {
         title: "local".to_string(),
         description: format!("Package name-version: {}-{}", package.name, package.version),
@@ -47,7 +55,6 @@ pub fn add_empty(package: &package::Package, reviews_directory: &std::path::Path
         comments: Vec::new(),
     };
 
-    let review_file_path = reviews_directory.join("local.review");
     let mut file = std::fs::OpenOptions::new()
         .write(true)
         .append(false)

@@ -31,9 +31,6 @@ pub fn setup(package: &package::Package) -> Result<std::path::PathBuf> {
         &package,
     )?;
 
-    let reviews_directory = review::tool::setup_reviews_directory(&workspace_directory)?;
-    review::detailed::add_empty(&package, &reviews_directory)?;
-
     Ok(workspace_directory)
 }
 
