@@ -74,8 +74,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     review::tool::run(&workspace_directory, &config)?;
 
     let review = summary::add_user_input(&review)?;
-    review::index::update(&review, &tx)?;
-    review::fs::add(&review, None)?;
+    review::store(&review, &tx)?;
 
     let commit_message = get_commit_message(&review.package);
     tx.commit(&commit_message)?;
