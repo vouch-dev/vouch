@@ -68,6 +68,8 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     };
 
     let workspace_directory = workspace::ensure(&review.package)?;
+    workspace::analyse(&workspace_directory)?;
+
     let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
     review::detailed::ensure_review_file(&review.package, &reviews_directory)?;
 

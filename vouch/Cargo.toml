@@ -40,4 +40,5 @@ zip = "0.5.10"
 flate2 = "1.0.14"
 tar = "0.4.33"
 
+tokei = "12.1.2"
 prettytable-rs = "0.8.0"

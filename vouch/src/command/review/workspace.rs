@@ -218,6 +218,91 @@ fn normalize_workspace_directory_name(
     Ok(target_directory)
 }
 
+/// Analyse workspace file line counts.
+fn get_file_line_counts(
+    workspace_directory: &std::path::PathBuf,
+) -> Result<std::collections::BTreeMap<std::path::PathBuf, usize>> {
+    let paths = &[workspace_directory];
+    let excluded = &[];
+    let config = tokei::Config {
+        hidden: Some(true),
+        ..tokei::Config::default()
+    };
+    let mut languages = tokei::Languages::new();
+    languages.get_statistics(paths, excluded, &config);
+
+    let mut file_line_counts = std::collections::BTreeMap::new();
+
+    for (_language_type, langauge) in &languages {
+        for report in &langauge.reports {
+            let file_path = report.name.clone();
+            let total_line_count = report.stats.lines();
+            *file_line_counts.entry(file_path).or_insert(0) += total_line_count;
+        }
+    }
+    Ok(file_line_counts)
+}
+
+/// Sum directory line counts from file line counts.
+fn get_directory_line_counts(
+    file_line_counts: &std::collections::BTreeMap<std::path::PathBuf, usize>,
+    workspace_directory: &std::path::PathBuf,
+) -> Result<std::collections::BTreeMap<std::path::PathBuf, usize>> {
+    let mut directory_line_counts = std::collections::BTreeMap::new();
+    for (file_path, line_count) in file_line_counts.iter() {
+        let mut path = file_path.clone();
+        while path.pop() {
+            *directory_line_counts.entry(path.clone()).or_insert(0) += line_count;
+            if path == *workspace_directory {
+                break;
+            }
+        }
+    }
+    Ok(directory_line_counts.clone())
+}
+
+#[derive(Debug)]
+pub enum PathType {
+    File,
+    Directory,
+}
+
+#[derive(Debug)]
+pub struct PathAnalysis {
+    pub path_type: PathType,
+    pub line_count: usize,
+}
+
+/// Analyse workspace line counts.
+pub fn analyse(
+    workspace_directory: &std::path::PathBuf,
+) -> Result<std::collections::BTreeMap<std::path::PathBuf, PathAnalysis>> {
+    let file_line_counts = get_file_line_counts(&workspace_directory)?;
+    let directory_line_counts = get_directory_line_counts(&file_line_counts, &workspace_directory)?;
+
+    let mut all_paths_analysis = std::collections::BTreeMap::new();
+    for (path, line_count) in file_line_counts.into_iter() {
+        all_paths_analysis.insert(
+            path,
+            PathAnalysis {
+                path_type: PathType::File,
+                line_count,
+            },
+        );
+    }
+    for (path, line_count) in directory_line_counts.into_iter() {
+        all_paths_analysis.insert(
+            path,
+            PathAnalysis {
+                path_type: PathType::Directory,
+                line_count,
+            },
+        );
+    }
+
+    Ok(all_paths_analysis)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -228,6 +313,24 @@ mod tests {
             get_archive_extension(&url::Url::parse("https://localhost/d3/d3-4.10.0.tar.gz")?)?;
         let expected = "tar.gz".to_string();
         assert!(result == expected, format!("unexpected result: {}", result));
+        Ok(())
+    }
+
+    #[test]
+    fn test_correct_directory_line_counts() -> Result<()> {
+        let workspace_directory = std::path::PathBuf::from("/npmjs.com/d3/4.10.0/d3-4.10.0");
+        let file_line_counts = maplit::btreemap! {
+            std::path::PathBuf::from("/npmjs.com/d3/4.10.0/d3-4.10.0/file_1.js") => 22,
+            std::path::PathBuf::from("/npmjs.com/d3/4.10.0/d3-4.10.0/build/file_2.js") => 37,
+            std::path::PathBuf::from("/npmjs.com/d3/4.10.0/d3-4.10.0/build/file_3.js") => 5,
+        };
+
+        let result = get_directory_line_counts(&file_line_counts, &workspace_directory)?;
+        let expected = maplit::btreemap! {
+            std::path::PathBuf::from("/npmjs.com/d3/4.10.0/d3-4.10.0") => 64,
+            std::path::PathBuf::from("/npmjs.com/d3/4.10.0/d3-4.10.0/build") => 42,
+        };
+        assert_eq!(result, expected);
         Ok(())
     }
 }
