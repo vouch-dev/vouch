@@ -12,7 +12,6 @@ use crate::review;
 use crate::store;
 
 mod summary;
-mod workspace;
 
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
@@ -67,8 +66,8 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         )?
     };
 
-    let workspace_directory = workspace::ensure(&review.package)?;
-    workspace::analyse(&workspace_directory)?;
+    let workspace_directory = review::workspace::ensure(&review.package)?;
+    review::workspace::analyse(&workspace_directory)?;
 
     let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
     review::detailed::ensure_review_file(&review.package, &reviews_directory)?;
