@@ -226,6 +226,7 @@ fn get_file_line_counts(
     let excluded = &[];
     let config = tokei::Config {
         hidden: Some(true),
+        no_ignore: Some(true),
         ..tokei::Config::default()
     };
     let mut languages = tokei::Languages::new();
@@ -261,7 +262,7 @@ fn get_directory_line_counts(
     Ok(directory_line_counts.clone())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum PathType {
     File,
     Directory,
@@ -273,34 +274,30 @@ pub struct PathAnalysis {
     pub line_count: usize,
 }
 
+pub type Analysis = std::collections::BTreeMap<std::path::PathBuf, PathAnalysis>;
+
 /// Analyse workspace line counts.
-pub fn analyse(
-    workspace_directory: &std::path::PathBuf,
-) -> Result<std::collections::BTreeMap<std::path::PathBuf, PathAnalysis>> {
+pub fn analyse(workspace_directory: &std::path::PathBuf) -> Result<Analysis> {
     let file_line_counts = get_file_line_counts(&workspace_directory)?;
     let directory_line_counts = get_directory_line_counts(&file_line_counts, &workspace_directory)?;
 
-    let mut all_paths_analysis = std::collections::BTreeMap::new();
-    for (path, line_count) in file_line_counts.into_iter() {
-        all_paths_analysis.insert(
-            path,
-            PathAnalysis {
-                path_type: PathType::File,
-                line_count,
-            },
-        );
+    let mut analysis = std::collections::BTreeMap::new();
+    for (path_type, line_counts) in vec![
+        (PathType::File, file_line_counts),
+        (PathType::Directory, directory_line_counts),
+    ] {
+        for (path, line_count) in line_counts.into_iter() {
+            let path = path.strip_prefix(workspace_directory)?.to_path_buf();
+            analysis.insert(
+                path,
+                PathAnalysis {
+                    path_type,
+                    line_count,
+                },
+            );
+        }
     }
-    for (path, line_count) in directory_line_counts.into_iter() {
-        all_paths_analysis.insert(
-            path,
-            PathAnalysis {
-                path_type: PathType::Directory,
-                line_count,
-            },
-        );
-    }
-
-    Ok(all_paths_analysis)
+    Ok(analysis)
 }
 
 #[cfg(test)]
