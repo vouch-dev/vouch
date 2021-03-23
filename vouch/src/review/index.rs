@@ -51,7 +51,10 @@ pub fn insert(
     tx.index_tx().execute_named(
         r"
             INSERT INTO review (
-                peer_id, package_id, package_security, review_confidence
+                peer_id,
+                package_id,
+                package_security,
+                review_confidence
             )
             VALUES (:peer_id, :package_id, :package_security, :review_confidence)
         ",
