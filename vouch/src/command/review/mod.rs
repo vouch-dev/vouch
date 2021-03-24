@@ -70,9 +70,11 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     review::workspace::analyse(&workspace_directory)?;
 
     let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
-    review::detailed::ensure_review_file(&review.package, &reviews_directory)?;
+    let active_review_file = review::active::ensure(&review.package, &reviews_directory)?;
 
     review::tool::run(&workspace_directory, &config)?;
+
+    let _comments = review::active::parse(&active_review_file)?;
 
     let review = summary::add_user_input(&review)?;
     review::store(&review, &tx)?;
