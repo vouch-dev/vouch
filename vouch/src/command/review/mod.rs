@@ -47,23 +47,24 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 
     let extension_names = handle_extension_names_arg(&args.extension_names, &config)?;
 
-    let review = if let Some(review) = get_existing_review(
+    let (review, editing_mode) = if let Some(review) = get_existing_review(
         &args.package_name,
         &args.package_version,
         &extension_names,
         &tx,
     )? {
         log::debug!("Existing review found.");
-        review
+        (review, EditingMode::Update)
     } else {
         log::debug!("No existing review found. Starting new review.");
-        get_new_review(
+        let review = get_new_review(
             &args.package_name,
             &args.package_version,
             &extension_names,
             &config,
             &tx,
-        )?
+        )?;
+        (review, EditingMode::Create)
     };
 
     let workspace_directory = review::workspace::ensure(&review.package)?;
@@ -79,7 +80,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let review = summary::add_user_input(&review)?;
     review::store(&review, &tx)?;
 
-    let commit_message = get_commit_message(&review.package);
+    let commit_message = get_commit_message(&review.package, &editing_mode);
     tx.commit(&commit_message)?;
     Ok(())
 }
@@ -295,9 +296,19 @@ fn get_insert_unset_review(
     Ok(unset_review)
 }
 
-fn get_commit_message(package: &package::Package) -> String {
+enum EditingMode {
+    Create,
+    Update,
+}
+
+fn get_commit_message(package: &package::Package, editing_mode: &EditingMode) -> String {
+    let message_prefix = match editing_mode {
+        EditingMode::Create => "Creating",
+        EditingMode::Update => "Updating",
+    };
     format!(
-        "Add review: {registry_host_name}/{package_name}/{package_version}",
+        "{message_prefix} review: {registry_host_name}/{package_name}/{package_version}",
+        message_prefix = message_prefix,
         registry_host_name = package.registry.host_name,
         package_name = package.name,
         package_version = package.version,
