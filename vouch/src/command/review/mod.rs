@@ -46,26 +46,13 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let tx = store.get_transaction()?;
 
     let extension_names = handle_extension_names_arg(&args.extension_names, &config)?;
-
-    let (review, editing_mode) = if let Some(review) = get_existing_review(
+    let (review, editing_mode) = get_review(
         &args.package_name,
         &args.package_version,
         &extension_names,
+        &config,
         &tx,
-    )? {
-        log::debug!("Existing review found.");
-        (review, EditingMode::Update)
-    } else {
-        log::debug!("No existing review found. Starting new review.");
-        let review = get_new_review(
-            &args.package_name,
-            &args.package_version,
-            &extension_names,
-            &config,
-            &tx,
-        )?;
-        (review, EditingMode::Create)
-    };
+    )?;
 
     let workspace_directory = review::workspace::ensure(&review.package)?;
     review::workspace::analyse(&workspace_directory)?;
@@ -83,6 +70,38 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let commit_message = get_commit_message(&review.package, &editing_mode);
     tx.commit(&commit_message)?;
     Ok(())
+}
+
+/// Review edit mode.
+enum EditingMode {
+    Create,
+    Update,
+}
+
+/// Retrieve existing or new review.
+fn get_review(
+    package_name: &str,
+    package_version: &str,
+    extension_names: &std::collections::BTreeSet<String>,
+    config: &common::config::Config,
+    tx: &StoreTransaction,
+) -> Result<(review::Review, EditingMode)> {
+    if let Some(review) =
+        get_existing_review(&package_name, &package_version, &extension_names, &tx)?
+    {
+        log::debug!("Existing review found.");
+        Ok((review, EditingMode::Update))
+    } else {
+        log::debug!("No existing review found. Starting new review.");
+        let review = get_new_review(
+            &package_name,
+            &package_version,
+            &extension_names,
+            &config,
+            &tx,
+        )?;
+        Ok((review, EditingMode::Create))
+    }
 }
 
 /// Check given extensions are enabled. If not specified select all enabled extensions.
@@ -294,11 +313,6 @@ fn get_insert_unset_review(
         &tx,
     )?;
     Ok(unset_review)
-}
-
-enum EditingMode {
-    Create,
-    Update,
 }
 
 fn get_commit_message(package: &package::Package, editing_mode: &EditingMode) -> String {
