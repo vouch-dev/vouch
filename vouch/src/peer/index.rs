@@ -160,9 +160,6 @@ fn remove_child_peer_id(
 }
 
 /// Get matching peers.
-///
-/// Takes a ransaction or a DB connection
-/// (allows for `&Index` instead of `&mut Index`).
 pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<common::Peer>> {
     let id =
         crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
