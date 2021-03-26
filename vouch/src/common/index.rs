@@ -22,7 +22,7 @@ pub trait Identify {
     fn id_mut(&mut self) -> &mut ID;
 }
 
-/// Return values which are in primary but not in secondary. Ignores ID values.
+/// Return elements which are in primary and also not in secondary. Ignores ID values.
 pub fn get_difference_sans_id<T>(primary: &HashSet<T>, secondary: &HashSet<T>) -> Result<HashSet<T>>
 where
     T: crate::common::HashSansId + Identify + Clone + Eq + PartialEq + std::hash::Hash,
