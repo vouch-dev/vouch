@@ -87,14 +87,14 @@ impl vouch_lib::extension::Extension for JsExtension {
 
         let entry_json = get_registry_entry_json(&package_name)?;
         let archive_url = get_archive_url(&entry_json, &package_version)?;
-        let source_code_hash = get_source_code_hash(&entry_json, &package_version)?;
+        let archive_hash = get_archive_hash(&entry_json, &package_version)?;
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             found_local_use,
             registry_host_name: Some(registry_host_name),
             registry_human_url: registry_human_url.map(|x| x.to_string()),
             archive_url: Some(archive_url.to_string()),
-            source_code_hash: Some(source_code_hash),
+            archive_hash: Some(archive_hash),
         })
     }
 }
@@ -141,7 +141,7 @@ fn get_archive_url(
     )?)
 }
 
-fn get_source_code_hash(
+fn get_archive_hash(
     registry_entry_json: &serde_json::Value,
     package_version: &str,
 ) -> Result<String> {

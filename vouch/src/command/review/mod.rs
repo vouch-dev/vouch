@@ -285,10 +285,10 @@ fn get_insert_package(
             .as_str(),
     )?;
 
-    let source_code_hash = &remote_package_metadata
-        .source_code_hash
+    let archive_hash = &remote_package_metadata
+        .archive_hash
         .clone()
-        .ok_or(format_err!("Could not find source code SHA256 hash."))?;
+        .ok_or(format_err!("Could not find archive hash."))?;
 
     let registry_host_name = &remote_package_metadata
         .registry_host_name
@@ -313,7 +313,7 @@ fn get_insert_package(
             &package_version,
             &registry_human_url,
             &archive_url,
-            &source_code_hash,
+            &archive_hash,
             &registry_host_name,
             &tx,
         )?,

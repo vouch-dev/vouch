@@ -19,7 +19,7 @@ pub struct Package {
     pub registry_human_url: url::Url,
 
     pub archive_url: url::Url,
-    pub source_code_hash: String,
+    pub archive_hash: String,
 }
 
 impl common::index::Identify for Package {
@@ -39,7 +39,7 @@ impl crate::common::HashSansId for Package {
         self.registry.hash(state);
         self.registry_human_url.hash(state);
         self.archive_url.hash(state);
-        self.source_code_hash.hash(state);
+        self.archive_hash.hash(state);
     }
 }
 
@@ -61,7 +61,7 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
             registry_id                INTEGER NOT NULL,
             registry_human_url         TEXT NOT NULL,
             archive_url                TEXT NOT NULL,
-            source_code_hash           TEXT NOT NULL,
+            archive_hash               TEXT NOT NULL,
 
             FOREIGN KEY(registry_id) REFERENCES registry(id)
             UNIQUE(name, version, registry_id)
@@ -76,7 +76,7 @@ pub fn insert(
     package_version: &str,
     registry_human_url: &url::Url,
     archive_url: &url::Url,
-    source_code_hash: &str,
+    archive_hash: &str,
     registry_host_name: &str,
     tx: &StoreTransaction,
 ) -> Result<Package> {
@@ -102,7 +102,7 @@ pub fn insert(
                 registry_id,
                 registry_human_url,
                 archive_url,
-                source_code_hash
+                archive_hash
             )
             VALUES (
                 :name,
@@ -110,7 +110,7 @@ pub fn insert(
                 :registry_id,
                 :registry_human_url,
                 :archive_url,
-                :source_code_hash
+                :archive_hash
             )
         ",
         rusqlite::named_params! {
@@ -119,7 +119,7 @@ pub fn insert(
             ":registry_id": registry.id,
             ":registry_human_url": registry_human_url.to_string(),
             ":archive_url": archive_url.to_string(),
-            ":source_code_hash": source_code_hash,
+            ":archive_hash": archive_hash,
         },
     )?;
     Ok(Package {
@@ -129,7 +129,7 @@ pub fn insert(
         registry: registry,
         registry_human_url: registry_human_url.clone(),
         archive_url: archive_url.clone(),
-        source_code_hash: source_code_hash.to_string(),
+        archive_hash: archive_hash.to_string(),
     })
 }
 
@@ -179,7 +179,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
             registry: registry,
             registry_human_url: url::Url::parse(row.get::<_, String>(4)?.as_str())?,
             archive_url: url::Url::parse(row.get::<_, String>(5)?.as_str())?,
-            source_code_hash: row.get(6)?,
+            archive_hash: row.get(6)?,
         };
         packages.insert(package);
     }
@@ -198,7 +198,7 @@ pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<Ha
             &package.version,
             &package.registry_human_url,
             &package.archive_url,
-            &package.source_code_hash,
+            &package.archive_hash,
             &package.registry.host_name,
             &tx,
         )?;
