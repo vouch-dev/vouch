@@ -20,7 +20,7 @@ pub struct Arguments {
     pub package_name: Option<String>,
 
     /// Package version.
-    #[structopt(name = "version", requires("package_name"))]
+    #[structopt(name = "version", requires("name"))]
     pub package_version: Option<String>,
 }
 
