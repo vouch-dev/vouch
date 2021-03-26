@@ -47,8 +47,5 @@ pub fn parse(path: &std::path::PathBuf) -> Result<Vec<review::comment::Comment>>
     let reader = std::io::BufReader::new(file);
 
     let active_review: review::active::ActiveReview = serde_json::from_reader(reader)?;
-    let mut comments = active_review.comments;
-    review::comment::clean(&mut comments)?;
-
-    Ok(comments)
+    Ok(active_review.comments)
 }
