@@ -276,8 +276,7 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
     let peer_id = crate::common::index::get_like_clause_param(
         fields.peer.map(|peer| peer.id.to_string()).as_deref(),
     );
-
-    let mut statement = tx.index_tx().prepare(
+    tx.index_tx().execute_named(
         r"
         DELETE FROM review
         JOIN peer
@@ -292,13 +291,13 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
             AND peer.id LIKE :peer_id ESCAPE '\'
             AND registry.host_name LIKE :registry_host_name ESCAPE '\'
         ",
+        &[
+            (":name", &package_name),
+            (":version", &package_version),
+            (":peer_id", &peer_id),
+            (":registry_host_name", &registry_host_name),
+        ],
     )?;
-    statement.query_named(&[
-        (":name", &package_name),
-        (":version", &package_version),
-        (":peer_id", &peer_id),
-        (":registry_host_name", &registry_host_name),
-    ])?;
     Ok(())
 }
 
