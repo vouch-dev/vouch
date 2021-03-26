@@ -88,6 +88,7 @@ pub fn insert(
 
 #[derive(Debug, Default)]
 pub struct Fields<'a> {
+    pub id: Option<crate::common::index::ID>,
     pub ids: Option<&'a Vec<crate::common::index::ID>>,
 }
 
@@ -201,4 +202,19 @@ pub fn merge(
         new_comments.insert(comment);
     }
     Ok(new_comments)
+}
+
+pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
+    let id =
+        crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
+    let mut statement = tx.index_tx().prepare(
+        r"
+        DELETE FROM
+            comment
+        WHERE
+            id LIKE :id ESCAPE '\'
+        ",
+    )?;
+    statement.query_named(&[(":id", &id)])?;
+    Ok(())
 }
