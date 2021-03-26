@@ -2,6 +2,7 @@ use anyhow::Result;
 
 use crate::common::{self, StoreTransaction};
 use std::collections::HashSet;
+use std::hash::Hash;
 
 #[derive(
     Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
@@ -11,6 +12,12 @@ pub struct Registry {
     pub id: common::index::ID,
 
     pub host_name: String,
+}
+
+impl crate::common::HashSansId for Registry {
+    fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.host_name.hash(state);
+    }
 }
 
 impl common::index::Identify for Registry {
@@ -88,7 +95,7 @@ pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<Ha
 
     let mut new_registires = HashSet::new();
     for registry in
-        common::index::get_id_neutral_set_difference(&incoming_registires, &existing_registires)?
+        common::index::get_difference_sans_id(&incoming_registires, &existing_registires)?
     {
         let registry = insert(registry.host_name.as_str(), &tx)?;
         new_registires.insert(registry);

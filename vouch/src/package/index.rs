@@ -1,9 +1,9 @@
-use anyhow::{format_err, Result};
-use std::collections::HashSet;
-
 use super::super::common;
 use crate::common::StoreTransaction;
 use crate::registry;
+use anyhow::{format_err, Result};
+use std::collections::HashSet;
+use std::hash::Hash;
 
 #[derive(
     Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
@@ -29,6 +29,17 @@ impl common::index::Identify for Package {
 
     fn id_mut(&mut self) -> &mut common::index::ID {
         &mut self.id
+    }
+}
+
+impl crate::common::HashSansId for Package {
+    fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.version.hash(state);
+        self.registry.hash(state);
+        self.registry_human_url.hash(state);
+        self.source_code_url.hash(state);
+        self.source_code_hash.hash(state);
     }
 }
 
@@ -181,9 +192,7 @@ pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<Ha
     let incoming_packages = get(&Fields::default(), &incoming_tx)?;
 
     let mut new_packages = HashSet::new();
-    for package in
-        common::index::get_id_neutral_set_difference(&incoming_packages, &existing_packages)?
-    {
+    for package in common::index::get_difference_sans_id(&incoming_packages, &existing_packages)? {
         let package = insert(
             &package.name,
             &package.version,

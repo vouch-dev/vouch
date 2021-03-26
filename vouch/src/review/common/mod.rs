@@ -7,6 +7,7 @@
 //! Print statements are prohibited whithin this module. Logging is allowed.
 
 use serde;
+use std::{hash::Hash, iter::Rev};
 
 mod package_security;
 pub mod rating;
@@ -34,4 +35,14 @@ pub struct Review {
     pub package: crate::package::Package,
 
     pub comments: Vec<crate::review::comment::Comment>,
+}
+
+impl crate::common::HashSansId for Review {
+    fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.package_security.hash(state);
+        self.review_confidence.hash(state);
+        self.peer.hash(state);
+        self.package.hash(state);
+        self.comments.hash(state);
+    }
 }

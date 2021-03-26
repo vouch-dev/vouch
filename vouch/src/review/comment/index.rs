@@ -190,7 +190,7 @@ pub fn merge(
 
     let mut new_comments = std::collections::HashSet::new();
     for comment in
-        crate::common::index::get_id_neutral_set_difference(&incoming_comments, &existing_comments)?
+        crate::common::index::get_difference_sans_id(&incoming_comments, &existing_comments)?
     {
         let comment = insert(
             &comment.path,
@@ -207,14 +207,14 @@ pub fn merge(
 pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
     let id =
         crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
-    let mut statement = tx.index_tx().prepare(
+    tx.index_tx().execute_named(
         r"
         DELETE FROM
             comment
         WHERE
             id LIKE :id ESCAPE '\'
-        ",
+    ",
+        &[(":id", &id)],
     )?;
-    statement.query_named(&[(":id", &id)])?;
     Ok(())
 }

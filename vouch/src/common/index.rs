@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::collections::HashSet;
+use std::hash::Hasher;
 
 pub type ID = i64;
 
@@ -21,28 +22,35 @@ pub trait Identify {
     fn id_mut(&mut self) -> &mut ID;
 }
 
-pub fn get_id_neutral_set_difference<T>(
-    primary: &HashSet<T>,
-    secondary: &HashSet<T>,
-) -> Result<HashSet<T>>
+/// Return values which are in primary but not in secondary. Ignores ID values.
+pub fn get_difference_sans_id<T>(primary: &HashSet<T>, secondary: &HashSet<T>) -> Result<HashSet<T>>
 where
-    T: Identify + Clone + Eq + PartialEq + std::hash::Hash,
+    T: crate::common::HashSansId + Identify + Clone + Eq + PartialEq + std::hash::Hash,
 {
-    let primary: HashSet<T> = primary
-        .iter()
-        .cloned()
-        .map(|mut x| {
-            *x.id_mut() = 0;
-            x
+    let primary = primary
+        .into_iter()
+        .map(|x| {
+            let mut state = std::collections::hash_map::DefaultHasher::new();
+            x.hash_sans_id(&mut state);
+            (state.finish(), x)
         })
-        .collect();
-    let secondary: HashSet<T> = secondary
-        .iter()
-        .cloned()
-        .map(|mut x| {
-            *x.id_mut() = 0;
-            x
+        .collect::<std::collections::HashMap<_, _>>();
+    let secondary = secondary
+        .into_iter()
+        .map(|x| {
+            let mut state = std::collections::hash_map::DefaultHasher::new();
+            x.hash_sans_id(&mut state);
+            (state.finish(), x)
         })
+        .collect::<std::collections::HashMap<_, _>>();
+
+    let primary_keys = primary.keys().collect::<HashSet<_>>();
+    let secondary_keys = secondary.keys().collect::<HashSet<_>>();
+    let difference_keys = primary_keys.difference(&secondary_keys);
+
+    let difference = difference_keys
+        .into_iter()
+        .map(|k| primary[k].clone())
         .collect();
-    Ok(primary.difference(&secondary).cloned().collect())
+    Ok(difference)
 }

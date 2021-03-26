@@ -564,8 +564,7 @@ mod tests {
                 child_peer_ids: None,
             },
         };
-        let unexpected_peers =
-            crate::common::index::get_id_neutral_set_difference(&result, &expected)?;
+        let unexpected_peers = crate::common::index::get_difference_sans_id(&result, &expected)?;
         assert!(
             unexpected_peers.is_empty(),
             format!("unexpected peers: {:?}", unexpected_peers)
@@ -637,8 +636,7 @@ mod tests {
                 child_peer_ids: None,
             },
         };
-        let unexpected_peers =
-            crate::common::index::get_id_neutral_set_difference(&result, &expected)?;
+        let unexpected_peers = crate::common::index::get_difference_sans_id(&result, &expected)?;
         assert!(unexpected_peers.is_empty());
         Ok(())
     }

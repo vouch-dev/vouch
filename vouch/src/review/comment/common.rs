@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 #[derive(
     Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
 )]
@@ -56,6 +58,15 @@ pub struct Comment {
     #[serde(rename = "description")]
     pub message: String,
     pub selection: Option<Selection>,
+}
+
+impl crate::common::HashSansId for Comment {
+    fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.path.hash(state);
+        self.summary.hash(state);
+        self.message.hash(state);
+        self.selection.hash(state);
+    }
 }
 
 impl crate::common::index::Identify for Comment {

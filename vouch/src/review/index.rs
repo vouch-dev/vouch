@@ -96,6 +96,8 @@ pub fn insert(
 }
 
 pub fn update(review: &common::Review, tx: &StoreTransaction) -> Result<()> {
+    remove_stale_comments(&review, &tx)?;
+
     tx.index_tx().execute_named(
         r"
             UPDATE review
@@ -126,6 +128,43 @@ pub fn update(review: &common::Review, tx: &StoreTransaction) -> Result<()> {
             ),
         ],
     )?;
+    Ok(())
+}
+
+fn remove_stale_comments(review: &common::Review, tx: &StoreTransaction) -> Result<()> {
+    let current_reviews = get(
+        &Fields {
+            id: Some(review.id),
+            ..Default::default()
+        },
+        &tx,
+    )?;
+    let current_review = match current_reviews.first() {
+        Some(current_review) => current_review,
+        None => {
+            // No current review, no stale comments to remove.
+            return Ok(());
+        }
+    };
+
+    let current_comments = current_review
+        .comments
+        .clone()
+        .into_iter()
+        .collect::<HashSet<_>>();
+    let new_comments = review.comments.clone().into_iter().collect::<HashSet<_>>();
+    let stale_comments =
+        crate::common::index::get_difference_sans_id(&current_comments, &new_comments)?;
+
+    for comment in stale_comments {
+        comment::index::remove(
+            &comment::index::Fields {
+                id: Some(comment.id),
+                ..Default::default()
+            },
+            &tx,
+        )?;
+    }
     Ok(())
 }
 

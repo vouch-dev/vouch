@@ -77,6 +77,8 @@ fn add_user_comments(
     tx: &StoreTransaction,
 ) -> Result<()> {
     let comments = review::active::parse(&active_review_file)?;
+
+    let mut inserted_comments = Vec::<_>::new();
     for comment in comments {
         let comment = review::comment::index::insert(
             &comment.path,
@@ -85,8 +87,10 @@ fn add_user_comments(
             &comment.selection,
             &tx,
         )?;
-        review.comments.push(comment);
+        inserted_comments.push(comment);
     }
+
+    review.comments = inserted_comments;
     Ok(())
 }
 

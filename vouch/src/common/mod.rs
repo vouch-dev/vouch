@@ -129,3 +129,8 @@ impl<'de> serde::Deserialize<'de> for GitUrl {
         Ok(deserializer.deserialize_str(UrlVisitor)?)
     }
 }
+
+pub trait HashSansId {
+    /// Compute hash without ID field.
+    fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H);
+}
