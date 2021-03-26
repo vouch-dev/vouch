@@ -28,7 +28,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let config = common::config::Config::load()?;
     match &args.package_name {
         Some(package_name) => {
-            single_dependancy_report(&package_name, &args.package_version)?;
+            specific_package_report(&package_name, &args.package_version)?;
         }
         None => {
             local_dependancies_table(&config)?;
@@ -37,7 +37,8 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     Ok(())
 }
 
-fn single_dependancy_report(package_name: &str, package_version: &Option<String>) -> Result<()> {
+/// Prints a report for a specific package.
+fn specific_package_report(package_name: &str, package_version: &Option<String>) -> Result<()> {
     // TODO: Handle multiple registries.
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
