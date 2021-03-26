@@ -38,7 +38,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 }
 
 fn single_dependancy_report(package_name: &str, package_version: &Option<String>) -> Result<()> {
-    // TODO: Handle multiple registires.
+    // TODO: Handle multiple registries.
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
