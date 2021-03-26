@@ -7,7 +7,7 @@
 //! Print statements are prohibited whithin this module. Logging is allowed.
 
 use serde;
-use std::{hash::Hash, iter::Rev};
+use std::hash::Hash;
 
 mod package_security;
 pub mod rating;
