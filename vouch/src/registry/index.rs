@@ -30,7 +30,7 @@ impl common::index::Identify for Registry {
     }
 }
 
-pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
+pub fn setup(tx: &StoreTransaction) -> Result<()> {
     tx.index_tx().execute(
         "CREATE TABLE IF NOT EXISTS registry (
         id              INTEGER NOT NULL PRIMARY KEY,

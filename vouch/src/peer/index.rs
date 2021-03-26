@@ -29,7 +29,7 @@ pub fn get_root(tx: &StoreTransaction) -> Result<Option<common::Peer>> {
     .map(|x| x.clone()))
 }
 
-pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
+pub fn setup(tx: &StoreTransaction) -> Result<()> {
     tx.index_tx().execute(
         "
     CREATE TABLE IF NOT EXISTS peer (
@@ -484,7 +484,7 @@ mod tests {
         let mut incoming_db = rusqlite::Connection::open_in_memory()?;
         let incoming_tx = StoreTransaction::new(incoming_db.transaction()?)?;
 
-        setup_database(&incoming_tx)?;
+        setup(&incoming_tx)?;
         // root_incoming -> peer_1 -> peer_2
         let mut root_peer = get_root(&incoming_tx)?.unwrap();
         let mut peer_1 = insert(
@@ -503,7 +503,7 @@ mod tests {
         // Setup destination database.
         let mut db = rusqlite::Connection::open_in_memory()?;
         let tx = StoreTransaction::new(db.transaction()?)?;
-        setup_database(&tx)?;
+        setup(&tx)?;
         // root -> peer_3 -> peer_2
         let mut root_peer = get_root(&tx)?.unwrap();
         let mut peer_3 = insert(
@@ -580,7 +580,7 @@ mod tests {
 
         let incoming_root_git_url =
             crate::common::GitUrl::try_from("https://localhost/root_incoming")?;
-        setup_database(&incoming_tx)?;
+        setup(&incoming_tx)?;
         // root_incoming -> peer_1 -> peer_2
         let mut root_peer = get_root(&incoming_tx)?.unwrap();
         let mut peer_1 = insert(
@@ -599,7 +599,7 @@ mod tests {
         // Setup destination database.
         let mut db = rusqlite::Connection::open_in_memory()?;
         let tx = StoreTransaction::new(db.transaction()?)?;
-        setup_database(&tx)?;
+        setup(&tx)?;
         // root -> peer_3 -> peer_2
         let mut root_peer = get_root(&tx)?.unwrap();
         let mut peer_3 = insert(
@@ -645,7 +645,7 @@ mod tests {
     fn test_get_peer_subtrees() -> Result<()> {
         let mut db = rusqlite::Connection::open_in_memory()?;
         let tx = StoreTransaction::new(db.transaction()?)?;
-        setup_database(&tx)?;
+        setup(&tx)?;
         let mut root_peer = get_root(&tx)?.unwrap();
 
         // root -> peer_1 -> peer_2
@@ -683,7 +683,7 @@ mod tests {
     fn test_insert_peers_correct_child_peer_ids() -> Result<()> {
         let mut db = rusqlite::Connection::open_in_memory()?;
         let tx = StoreTransaction::new(db.transaction()?)?;
-        setup_database(&tx)?;
+        setup(&tx)?;
         let mut root_peer = get_root(&tx)?.unwrap();
         insert(
             "new_peer",
@@ -718,7 +718,7 @@ mod tests {
     fn test_delete_peer() -> Result<()> {
         let mut db = rusqlite::Connection::open_in_memory()?;
         let tx = StoreTransaction::new(db.transaction()?)?;
-        setup_database(&tx)?;
+        setup(&tx)?;
         let mut root_peer = get_root(&tx)?.unwrap();
 
         insert(

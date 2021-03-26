@@ -23,7 +23,7 @@ pub struct Fields<'a> {
     pub registry_host_name: Option<&'a str>,
 }
 
-pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
+pub fn setup(tx: &StoreTransaction) -> Result<()> {
     comment::index::setup(&tx)?;
 
     tx.index_tx().execute(

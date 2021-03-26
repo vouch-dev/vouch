@@ -51,7 +51,7 @@ pub struct Fields<'a> {
     pub registry_host_name: Option<&'a str>,
 }
 
-pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
+pub fn setup(tx: &StoreTransaction) -> Result<()> {
     tx.index_tx().execute(
         r"
         CREATE TABLE IF NOT EXISTS package (

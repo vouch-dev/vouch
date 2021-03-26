@@ -55,10 +55,10 @@ pub fn merge(
 
 /// Setup database schema. Insert root peer.
 pub fn setup(tx: &StoreTransaction) -> Result<()> {
-    peer::index::setup_database(&tx)?;
-    registry::index::setup_database(&tx)?;
-    package::index::setup_database(&tx)?;
-    review::index::setup_database(&tx)?;
+    peer::index::setup(&tx)?;
+    registry::index::setup(&tx)?;
+    package::index::setup(&tx)?;
+    review::index::setup(&tx)?;
     Ok(())
 }
 
