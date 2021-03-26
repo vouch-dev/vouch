@@ -91,14 +91,14 @@ impl vouch_lib::extension::Extension for PyExtension {
             .clone();
 
         let entry_json = get_registry_entry_json(&package_name)?;
-        let source_code_url = get_source_code_url(&entry_json, &package_version)?;
+        let archive_url = get_archive_url(&entry_json, &package_version)?;
         let source_code_hash = get_source_code_hash(&entry_json, &package_version)?;
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             found_local_use,
             registry_host_name: Some(registry_host_name),
             registry_human_url: registry_human_url.map(|x| x.to_string()),
-            source_code_url: Some(source_code_url.to_string()),
+            archive_url: Some(archive_url.to_string()),
             source_code_hash: Some(source_code_hash),
         })
     }
@@ -136,7 +136,7 @@ fn get_registry_entry_json(package_name: &str) -> Result<serde_json::Value> {
     Ok(serde_json::from_str(&body).context(format!("JSON was not well-formatted:\n{}", body))?)
 }
 
-fn get_source_code_url(
+fn get_archive_url(
     registry_entry_json: &serde_json::Value,
     package_version: &str,
 ) -> Result<url::Url> {
@@ -149,11 +149,11 @@ fn get_source_code_url(
             .ok_or(format_err!("Failed to parse package version."))?;
         if python_version == "source" {
             return Ok(url::Url::parse(release["url"].as_str().ok_or(
-                format_err!("Failed to parse package source code URL."),
+                format_err!("Failed to parse package archive URL."),
             )?)?);
         }
     }
-    Err(format_err!("Failed to identify package source code URL."))
+    Err(format_err!("Failed to identify package archive URL."))
 }
 
 fn get_source_code_hash(

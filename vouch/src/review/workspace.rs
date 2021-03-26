@@ -7,19 +7,19 @@ use crate::review;
 
 /// Ensure review workspace setup is complete.
 ///
-/// Download and unpack package source code for review.
+/// Download and unpack package for review.
 /// If ongoing workspace exists, return directory path.
 pub fn ensure(package: &package::Package) -> Result<std::path::PathBuf> {
     if let Some(workspace_directory) = get_ongoing_workspace_directory(&package)? {
         return Ok(workspace_directory);
     }
 
-    let extension = get_archive_extension(&package.source_code_url)?;
+    let extension = get_archive_extension(&package.archive_url)?;
 
     let package_unique_directory = setup_unique_package_directory(&package)?;
     let archive_path = package_unique_directory.join(format!("package.{}", extension));
 
-    download_archive(&package.source_code_url, &archive_path)?;
+    download_archive(&package.archive_url, &archive_path)?;
 
     log::debug!("Extracting archive: {}", archive_path.display());
     let workspace_directory = match extension.as_str() {

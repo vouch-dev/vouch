@@ -277,11 +277,11 @@ fn get_insert_package(
         Some(url) => url::Url::parse(url.as_str())?,
         None => return Ok(None),
     };
-    let source_code_url = url::Url::parse(
+    let archive_url = url::Url::parse(
         remote_package_metadata
-            .source_code_url
+            .archive_url
             .clone()
-            .ok_or(format_err!("Could not find source code URL."))?
+            .ok_or(format_err!("Could not find archive URL."))?
             .as_str(),
     )?;
 
@@ -312,7 +312,7 @@ fn get_insert_package(
             &package_name,
             &package_version,
             &registry_human_url,
-            &source_code_url,
+            &archive_url,
             &source_code_hash,
             &registry_host_name,
             &tx,

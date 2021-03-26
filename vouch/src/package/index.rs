@@ -18,7 +18,7 @@ pub struct Package {
 
     pub registry_human_url: url::Url,
 
-    pub source_code_url: url::Url,
+    pub archive_url: url::Url,
     pub source_code_hash: String,
 }
 
@@ -38,7 +38,7 @@ impl crate::common::HashSansId for Package {
         self.version.hash(state);
         self.registry.hash(state);
         self.registry_human_url.hash(state);
-        self.source_code_url.hash(state);
+        self.archive_url.hash(state);
         self.source_code_hash.hash(state);
     }
 }
@@ -60,7 +60,7 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
             version                    TEXT NOT NULL,
             registry_id                INTEGER NOT NULL,
             registry_human_url         TEXT NOT NULL,
-            source_code_url            TEXT NOT NULL,
+            archive_url                TEXT NOT NULL,
             source_code_hash           TEXT NOT NULL,
 
             FOREIGN KEY(registry_id) REFERENCES registry(id)
@@ -75,7 +75,7 @@ pub fn insert(
     package_name: &str,
     package_version: &str,
     registry_human_url: &url::Url,
-    source_code_url: &url::Url,
+    archive_url: &url::Url,
     source_code_hash: &str,
     registry_host_name: &str,
     tx: &StoreTransaction,
@@ -101,7 +101,7 @@ pub fn insert(
                 version,
                 registry_id,
                 registry_human_url,
-                source_code_url,
+                archive_url,
                 source_code_hash
             )
             VALUES (
@@ -109,7 +109,7 @@ pub fn insert(
                 :version,
                 :registry_id,
                 :registry_human_url,
-                :source_code_url,
+                :archive_url,
                 :source_code_hash
             )
         ",
@@ -118,7 +118,7 @@ pub fn insert(
             ":version": package_version,
             ":registry_id": registry.id,
             ":registry_human_url": registry_human_url.to_string(),
-            ":source_code_url": source_code_url.to_string(),
+            ":archive_url": archive_url.to_string(),
             ":source_code_hash": source_code_hash,
         },
     )?;
@@ -128,7 +128,7 @@ pub fn insert(
         version: package_version.to_string(),
         registry: registry,
         registry_human_url: registry_human_url.clone(),
-        source_code_url: source_code_url.clone(),
+        archive_url: archive_url.clone(),
         source_code_hash: source_code_hash.to_string(),
     })
 }
@@ -178,7 +178,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
             version: row.get(2)?,
             registry: registry,
             registry_human_url: url::Url::parse(row.get::<_, String>(4)?.as_str())?,
-            source_code_url: url::Url::parse(row.get::<_, String>(5)?.as_str())?,
+            archive_url: url::Url::parse(row.get::<_, String>(5)?.as_str())?,
             source_code_hash: row.get(6)?,
         };
         packages.insert(package);
@@ -197,7 +197,7 @@ pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<Ha
             &package.name,
             &package.version,
             &package.registry_human_url,
-            &package.source_code_url,
+            &package.archive_url,
             &package.source_code_hash,
             &package.registry.host_name,
             &tx,
