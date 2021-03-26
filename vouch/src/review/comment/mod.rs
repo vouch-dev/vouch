@@ -1,39 +1,14 @@
 use anyhow::{format_err, Result};
+pub mod common;
+pub mod index;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub struct Position {
-    pub line: u64,
-    pub character: u64,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub struct Selection {
-    pub start: Position,
-    pub end: Position,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-#[serde(rename_all = "lowercase")]
-pub enum Summary {
-    Pass,
-    Warn,
-    Fail,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub struct Comment {
-    #[serde(rename = "file")]
-    pub path: std::path::PathBuf,
-    pub summary: Summary,
-    pub description: String,
-    pub selection: Option<Selection>,
-}
+pub use common::Comment;
 
 fn strip_top_directory(path: &mut std::path::PathBuf) -> Result<()> {
     let top_directory = path.iter().next().ok_or(format_err!(
         "Review contains comment with empty path field."
     ))?;
-    *path = path.strip_prefix(top_directory)?.to_path_buf();
+    // *path = path.strip_prefix(top_directory)?.to_path_buf();
     Ok(())
 }
 

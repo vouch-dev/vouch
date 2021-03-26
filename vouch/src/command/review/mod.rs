@@ -46,7 +46,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let tx = store.get_transaction()?;
 
     let extension_names = handle_extension_names_arg(&args.extension_names, &config)?;
-    let (review, editing_mode) = get_review(
+    let (mut review, editing_mode) = get_review(
         &args.package_name,
         &args.package_version,
         &extension_names,
@@ -62,13 +62,31 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 
     review::tool::run(&workspace_directory, &config)?;
 
-    let _comments = review::active::parse(&active_review_file)?;
-
-    let review = summary::add_user_input(&review)?;
+    add_user_comments(&mut review, &active_review_file, &tx)?;
     review::store(&review, &tx)?;
 
     let commit_message = get_commit_message(&review.package, &editing_mode);
     tx.commit(&commit_message)?;
+    Ok(())
+}
+
+/// Parse user comments from active review file and add to review.
+fn add_user_comments(
+    review: &mut review::Review,
+    active_review_file: &std::path::PathBuf,
+    tx: &StoreTransaction,
+) -> Result<()> {
+    let comments = review::active::parse(&active_review_file)?;
+    for comment in comments {
+        let comment = review::comment::index::insert(
+            &comment.path,
+            &comment.summary,
+            &comment.message,
+            &comment.selection,
+            &tx,
+        )?;
+        review.comments.push(comment);
+    }
     Ok(())
 }
 
@@ -308,6 +326,7 @@ fn get_insert_unset_review(
     let unset_review = review::index::insert(
         &review::PackageSecurity::Unset,
         &review::ReviewConfidence::Unset,
+        &Vec::<review::comment::Comment>::new(),
         &root_peer,
         &package,
         &tx,

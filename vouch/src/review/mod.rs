@@ -2,7 +2,7 @@ use crate::common::StoreTransaction;
 use anyhow::Result;
 
 pub mod active;
-pub mod comments;
+pub mod comment;
 mod common;
 pub mod fs;
 pub mod index;

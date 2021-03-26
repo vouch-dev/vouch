@@ -32,4 +32,6 @@ pub struct Review {
     pub peer: crate::peer::Peer,
 
     pub package: crate::package::Package,
+
+    pub comments: Vec<crate::review::comment::Comment>,
 }

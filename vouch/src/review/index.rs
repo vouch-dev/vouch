@@ -3,6 +3,7 @@ use anyhow::{format_err, Result};
 use std::collections::HashSet;
 use std::convert::TryFrom;
 
+use super::comment;
 use super::common;
 use crate::common::StoreTransaction;
 use crate::package;
@@ -23,6 +24,8 @@ pub struct Fields<'a> {
 }
 
 pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
+    comment::index::setup(&tx)?;
+
     tx.index_tx().execute(
         r"
         CREATE TABLE IF NOT EXISTS review (
@@ -31,6 +34,7 @@ pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
             package_id            INTEGER NOT NULL,
             package_security      INTEGER NOT NULL,
             review_confidence     INTEGER NOT NULL,
+            comment_ids           BLOB,
 
             UNIQUE(peer_id, package_id)
             FOREIGN KEY(peer_id) REFERENCES peer(id)
@@ -44,25 +48,41 @@ pub fn setup_database(tx: &StoreTransaction) -> Result<()> {
 pub fn insert(
     package_security: &common::PackageSecurity,
     review_confidence: &common::ReviewConfidence,
+    comments: &Vec<comment::Comment>,
     peer: &crate::peer::Peer,
     package: &crate::package::Package,
     tx: &StoreTransaction,
 ) -> Result<common::Review> {
+    let comment_ids: Vec<crate::common::index::ID> = comments.into_iter().map(|c| c.id).collect();
+    let comment_ids = if !comment_ids.is_empty() {
+        Some(bincode::serialize(&comment_ids)?)
+    } else {
+        None
+    };
+
     tx.index_tx().execute_named(
         r"
             INSERT INTO review (
                 peer_id,
                 package_id,
                 package_security,
-                review_confidence
+                review_confidence,
+                comment_ids
             )
-            VALUES (:peer_id, :package_id, :package_security, :review_confidence)
+            VALUES (
+                :peer_id,
+                :package_id,
+                :package_security,
+                :review_confidence,
+                :comment_ids
+            )
         ",
         &[
             (":peer_id", &peer.id),
             (":package_id", &package.id),
             (":package_security", &package_security.to_rating().to_u8()),
             (":review_confidence", &review_confidence.to_rating().to_u8()),
+            (":comment_ids", &comment_ids),
         ],
     )?;
     Ok(common::Review {
@@ -71,6 +91,7 @@ pub fn insert(
         review_confidence: review_confidence.clone(),
         peer: peer.clone(),
         package: package.clone(),
+        comments: comments.clone(),
     })
 }
 
@@ -82,7 +103,8 @@ pub fn update(review: &common::Review, tx: &StoreTransaction) -> Result<()> {
                 peer_id = :peer_id,
                 package_id = :package_id,
                 package_security = :package_security,
-                review_confidence = :review_confidence
+                review_confidence = :review_confidence,
+                comment_ids = :comment_ids
             WHERE
                 id = :id
         ",
@@ -97,6 +119,10 @@ pub fn update(review: &common::Review, tx: &StoreTransaction) -> Result<()> {
             (
                 ":review_confidence",
                 &review.review_confidence.to_rating().to_u8(),
+            ),
+            (
+                ":comment_ids",
+                &bincode::serialize(&review.comments.iter().map(|c| c.id).collect::<Vec<_>>())?,
             ),
         ],
     )?;
@@ -122,7 +148,8 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
             review.package_security,
             review.review_confidence,
             peer.id,
-            package.id
+            package.id,
+            review.comment_ids
         FROM review
         JOIN peer
             ON review.peer_id = peer.id
@@ -170,12 +197,32 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
         .next()
         .ok_or(format_err!("Failed to find review package in index."))?;
 
+        let comment_ids: Option<Result<Vec<crate::common::index::ID>>> = row
+            .get::<_, Option<Vec<u8>>>(5)?
+            .map(|x| Ok(bincode::deserialize(&x)?));
+        let comments = match comment_ids {
+            Some(comment_ids) => {
+                let comment_ids = comment_ids?;
+                comment::index::get(
+                    &comment::index::Fields {
+                        ids: Some(&comment_ids),
+                        ..Default::default()
+                    },
+                    &tx,
+                )?
+                .into_iter()
+                .collect()
+            }
+            None => Vec::<comment::Comment>::new(),
+        };
+
         let review = common::Review {
             id: row.get(0)?,
             package_security: common::rating::Rating::try_from(&row.get::<_, u8>(1)?)?.into(),
             review_confidence: common::rating::Rating::try_from(&row.get::<_, u8>(2)?)?.into(),
             peer,
             package,
+            comments,
         };
         reviews.push(review);
     }
@@ -221,6 +268,8 @@ pub fn merge(
     incoming_tx: &StoreTransaction,
     tx: &StoreTransaction,
 ) -> Result<HashSet<common::Review>> {
+    comment::index::merge(&incoming_tx, &tx)?;
+
     let incoming_reviews = get(&Fields::default(), &incoming_tx)?;
 
     let mut new_reviews = HashSet::new();
@@ -255,9 +304,12 @@ pub fn merge(
             review
         ))?;
 
+        // TODO: Get inserted comments.
+
         let review = insert(
             &review.package_security,
             &review.review_confidence,
+            &review.comments,
             &peer,
             &package,
             &tx,
@@ -295,25 +347,27 @@ mod tests {
 
         let root_peer = peer::index::get_root(&tx)?.unwrap();
 
-        insert(
+        let review_1 = insert(
             &common::PackageSecurity::Safe,
             &common::ReviewConfidence::High,
+            &Vec::<comment::Comment>::new(),
             &root_peer,
             &package_1,
             &tx,
         )?;
-        insert(
+        let review_2 = insert(
             &common::PackageSecurity::Safe,
             &common::ReviewConfidence::High,
+            &Vec::<comment::Comment>::new(),
             &root_peer,
             &package_2,
             &tx,
         )?;
 
-        // let expected = vec![review_1, review_2];
-        let result = get(&Fields::default(), &tx)?;
-        println!("result: {:?}", result);
-        // assert_eq!(result, expected);
+        let expected = maplit::btreeset! {review_1, review_2};
+        let result: std::collections::BTreeSet<common::Review> =
+            get(&Fields::default(), &tx)?.into_iter().collect();
+        assert_eq!(result, expected);
         Ok(())
     }
 }
