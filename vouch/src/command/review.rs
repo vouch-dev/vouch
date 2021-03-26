@@ -11,8 +11,6 @@ use crate::peer;
 use crate::review;
 use crate::store;
 
-mod summary;
-
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
     name = "no_version",
