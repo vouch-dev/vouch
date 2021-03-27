@@ -11,7 +11,7 @@ pub struct Extensions {
 }
 
 fn get_regex() -> Result<regex::Regex> {
-    Ok(regex::Regex::new(r"extensions\.(.*)\.enabled")?)
+    Ok(regex::Regex::new(r"extensions\.enabled\.(.*)")?)
 }
 
 pub fn is_match(name: &str) -> Result<bool> {
