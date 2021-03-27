@@ -40,10 +40,11 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     review::tool::check_install(&mut config)?;
     let config = config;
 
+    let extension_names = extension::handle_extension_names_arg(&args.extension_names, &config)?;
+
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
-    let extension_names = handle_extension_names_arg(&args.extension_names, &config)?;
     let (mut review, editing_mode) = get_review(
         &args.package_name,
         &args.package_version,
@@ -122,33 +123,6 @@ fn get_review(
         )?;
         Ok((review, EditingMode::Create))
     }
-}
-
-/// Check given extensions are enabled. If not specified select all enabled extensions.
-fn handle_extension_names_arg(
-    extension_names: &Option<Vec<String>>,
-    config: &common::config::Config,
-) -> Result<BTreeSet<String>> {
-    let names = match &extension_names {
-        Some(extension_names) => {
-            let disabled_names: Vec<_> = extension_names
-                .iter()
-                .cloned()
-                .filter(|name| !extension::is_enabled(&name, &config).unwrap_or(false))
-                .collect();
-            if !disabled_names.is_empty() {
-                return Err(format_err!(
-                    "The following disabled extensions were given: {}",
-                    disabled_names.join(", ")
-                ));
-            } else {
-                extension_names.into_iter().cloned().collect()
-            }
-        }
-        None => extension::get_enabled_names(&config)?,
-    };
-    log::debug!("Using extensions: {:?}", names);
-    Ok(names)
 }
 
 // Check index for existing root peer review.

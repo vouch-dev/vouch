@@ -299,9 +299,7 @@ fn get_extension_config_path(extension_name: &str) -> Result<std::path::PathBuf>
     )))
 }
 
-pub fn get_disabled_extension_names(
-    config: &common::config::Config,
-) -> Result<Vec<String>> {
+pub fn get_disabled_extension_names(config: &common::config::Config) -> Result<Vec<String>> {
     Ok(config
         .extensions
         .enabled
@@ -312,18 +310,41 @@ pub fn get_disabled_extension_names(
 }
 
 pub fn get_enabled_registry_host_names(
+    extension_names: &std::collections::BTreeSet<String>,
     config: &common::config::Config,
 ) -> Result<std::collections::HashSet<String>> {
     Ok(config
         .extensions
         .supported_package_registries
         .iter()
-        .filter(
-            |(_host_name, extension)| match config.extensions.enabled.get(*extension) {
-                Some(value) => *value,
-                None => false,
-            },
-        )
-        .map(|(host_name, _extension)| host_name.clone())
+        .filter(|(_host_name, extension_name)| extension_names.contains(*extension_name))
+        .map(|(host_name, _extension_name)| host_name.clone())
         .collect())
+}
+
+/// Check given extensions are enabled. If not specified select all enabled extensions.
+pub fn handle_extension_names_arg(
+    extension_names: &Option<Vec<String>>,
+    config: &common::config::Config,
+) -> Result<BTreeSet<String>> {
+    let names = match &extension_names {
+        Some(extension_names) => {
+            let disabled_names: Vec<_> = extension_names
+                .iter()
+                .cloned()
+                .filter(|name| !is_enabled(&name, &config).unwrap_or(false))
+                .collect();
+            if !disabled_names.is_empty() {
+                return Err(format_err!(
+                    "The following disabled extensions were given: {}",
+                    disabled_names.join(", ")
+                ));
+            } else {
+                extension_names.into_iter().cloned().collect()
+            }
+        }
+        None => get_enabled_names(&config)?,
+    };
+    log::debug!("Using extensions: {:?}", names);
+    Ok(names)
 }

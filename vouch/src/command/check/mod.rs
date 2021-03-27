@@ -1,10 +1,11 @@
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
+use crate::common;
 use crate::common::StoreTransaction;
+use crate::extension;
 use crate::review;
 use crate::store;
-use crate::{common, extension};
 
 mod report;
 mod table;
@@ -23,13 +24,27 @@ pub struct Arguments {
     /// Package version.
     #[structopt(name = "version", requires("name"))]
     pub package_version: Option<String>,
+
+    /// Specify an extension for handling the package or dependancies.
+    /// Example values: py, js, rs
+    #[structopt(long = "extension", short = "e", name = "name")]
+    pub extension_names: Option<Vec<String>>,
 }
 
 pub fn run_command(args: &Arguments) -> Result<()> {
-    let config = common::config::Config::load()?;
+    let mut config = common::config::Config::load()?;
+    extension::update_config(&mut config)?;
+    let config = config;
+    let extension_names = extension::handle_extension_names_arg(&args.extension_names, &config)?;
+
     match &args.package_name {
         Some(package_name) => {
-            specific_package_report(&package_name, &args.package_version)?;
+            specific_package_report(
+                &package_name,
+                &args.package_version,
+                &extension_names,
+                &config,
+            )?;
         }
         None => {
             local_dependancies_table(&config)?;
@@ -39,21 +54,31 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 }
 
 /// Prints a report for a specific package.
-fn specific_package_report(package_name: &str, package_version: &Option<String>) -> Result<()> {
-    let mut config = common::config::Config::load()?;
-    extension::update_config(&mut config)?;
-    let config = config;
-
+fn specific_package_report(
+    package_name: &str,
+    package_version: &Option<String>,
+    extension_names: &std::collections::BTreeSet<String>,
+    config: &common::config::Config,
+) -> Result<()> {
     // TODO: Handle multiple registries.
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
-    let reviews = get_package_reviews(package_name, package_version, &config, &tx)?;
+    let reviews = get_package_reviews(
+        package_name,
+        package_version,
+        &extension_names,
+        &config,
+        &tx,
+    )?;
     if reviews.is_empty() {
         println!("No reviews found.");
         let disabled_extension_names = extension::get_disabled_extension_names(&config)?;
         if !disabled_extension_names.is_empty() {
-            println!("Consider enabling some of these extensions: {}", disabled_extension_names.join(", "))
+            println!(
+                "Consider enabling some of these extensions: {}",
+                disabled_extension_names.join(", ")
+            )
         }
     }
 
@@ -99,10 +124,11 @@ fn specific_package_report(package_name: &str, package_version: &Option<String>)
 fn get_package_reviews(
     package_name: &str,
     package_version: &Option<String>,
+    extension_names: &std::collections::BTreeSet<String>,
     config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<std::collections::BTreeSet<review::Review>> {
-    let registries = extension::get_enabled_registry_host_names(&config)?;
+    let registries = extension::get_enabled_registry_host_names(&extension_names, &config)?;
 
     let mut reviews = review::index::get(
         &review::index::Fields {
