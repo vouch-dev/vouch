@@ -18,11 +18,11 @@ mod table;
 )]
 pub struct Arguments {
     /// Package name.
-    #[structopt(name = "name")]
+    #[structopt(name = "package-name")]
     pub package_name: Option<String>,
 
     /// Package version.
-    #[structopt(name = "version", requires("name"))]
+    #[structopt(name = "package-version", requires("name"))]
     pub package_version: Option<String>,
 
     /// Specify an extension for handling the package or dependancies.
