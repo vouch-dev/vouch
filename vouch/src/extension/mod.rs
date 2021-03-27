@@ -298,3 +298,32 @@ fn get_extension_config_path(extension_name: &str) -> Result<std::path::PathBuf>
         extension_name = extension_name
     )))
 }
+
+pub fn get_disabled_extension_names(
+    config: &common::config::Config,
+) -> Result<Vec<String>> {
+    Ok(config
+        .extensions
+        .enabled
+        .iter()
+        .filter(|(_extension_name, enabled_flag)| **enabled_flag)
+        .map(|(extension_name, _enabled_flag)| extension_name.clone())
+        .collect::<Vec<_>>())
+}
+
+pub fn get_enabled_registry_host_names(
+    config: &common::config::Config,
+) -> Result<std::collections::HashSet<String>> {
+    Ok(config
+        .extensions
+        .supported_package_registries
+        .iter()
+        .filter(
+            |(_host_name, extension)| match config.extensions.enabled.get(*extension) {
+                Some(value) => *value,
+                None => false,
+            },
+        )
+        .map(|(host_name, _extension)| host_name.clone())
+        .collect())
+}

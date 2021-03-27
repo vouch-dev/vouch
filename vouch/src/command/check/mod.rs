@@ -1,6 +1,7 @@
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
+use crate::common::StoreTransaction;
 use crate::review;
 use crate::store;
 use crate::{common, extension};
@@ -39,24 +40,22 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 
 /// Prints a report for a specific package.
 fn specific_package_report(package_name: &str, package_version: &Option<String>) -> Result<()> {
+    let mut config = common::config::Config::load()?;
+    extension::update_config(&mut config)?;
+    let config = config;
+
     // TODO: Handle multiple registries.
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
-    let mut reviews = review::index::get(
-        &review::index::Fields {
-            package_name: Some(package_name),
-            package_version: package_version.as_deref(),
-            ..Default::default()
-        },
-        &tx,
-    )?;
-    reviews.sort_by_cached_key(|review| {
-        (
-            review.package_security.clone(),
-            review.review_confidence.clone(),
-        )
-    });
+    let reviews = get_package_reviews(package_name, package_version, &config, &tx)?;
+    if reviews.is_empty() {
+        println!("No reviews found.");
+        let disabled_extension_names = extension::get_disabled_extension_names(&config)?;
+        if !disabled_extension_names.is_empty() {
+            println!("Consider enabling some of these extensions: {}", disabled_extension_names.join(", "))
+        }
+    }
 
     let mut reviews_by_version = std::collections::BTreeMap::<_, Vec<&review::Review>>::new();
     for review in &reviews {
@@ -95,6 +94,35 @@ fn specific_package_report(package_name: &str, package_version: &Option<String>)
         }
     }
     Ok(())
+}
+
+fn get_package_reviews(
+    package_name: &str,
+    package_version: &Option<String>,
+    config: &common::config::Config,
+    tx: &StoreTransaction,
+) -> Result<std::collections::BTreeSet<review::Review>> {
+    let registries = extension::get_enabled_registry_host_names(&config)?;
+
+    let mut reviews = review::index::get(
+        &review::index::Fields {
+            package_name: Some(package_name),
+            package_version: package_version.as_deref(),
+            ..Default::default()
+        },
+        &tx,
+    )?;
+    reviews.sort_by_cached_key(|review| {
+        (
+            review.package_security.clone(),
+            review.review_confidence.clone(),
+        )
+    });
+    let reviews = reviews
+        .into_iter()
+        .filter(|r| registries.contains(&r.package.registry.host_name))
+        .collect::<std::collections::BTreeSet<_>>();
+    Ok(reviews)
 }
 
 fn local_dependancies_table(config: &common::config::Config) -> Result<()> {
