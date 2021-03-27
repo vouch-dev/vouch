@@ -57,15 +57,26 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     review::workspace::analyse(&workspace_directory)?;
 
     let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
+
+    // TODO: Active ensure needs to create active review file from review if existing.
     let active_review_file = review::active::ensure(&review.package, &reviews_directory)?;
 
     review::tool::run(&workspace_directory, &config)?;
 
     add_user_comments(&mut review, &active_review_file, &tx)?;
-    review::store(&review, &tx)?;
 
-    let commit_message = get_commit_message(&review.package, &editing_mode);
-    tx.commit(&commit_message)?;
+    if dialoguer::Confirm::new()
+        .with_prompt("Is the review ready to share?")
+        .interact()?
+    {
+        review::store(&review, &tx)?;
+        let commit_message = get_commit_message(&review.package, &editing_mode);
+        tx.commit(&commit_message)?;
+
+        // TODO: Cleanup ongoing review.
+    } else {
+        println!("Not committing review. Review saved as ongoing.");
+    }
     Ok(())
 }
 
