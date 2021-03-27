@@ -37,6 +37,9 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let config = config;
     let extension_names = extension::handle_extension_names_arg(&args.extension_names, &config)?;
 
+    let mut store = store::Store::from_root()?;
+    let tx = store.get_transaction()?;
+
     match &args.package_name {
         Some(package_name) => {
             specific_package_report(
@@ -44,10 +47,11 @@ pub fn run_command(args: &Arguments) -> Result<()> {
                 &args.package_version,
                 &extension_names,
                 &config,
+                &tx,
             )?;
         }
         None => {
-            local_dependancies_table(&config)?;
+            local_dependancies_table(&config, &tx)?;
         }
     }
     Ok(())
@@ -59,11 +63,9 @@ fn specific_package_report(
     package_version: &Option<String>,
     extension_names: &std::collections::BTreeSet<String>,
     config: &common::config::Config,
+    tx: &StoreTransaction,
 ) -> Result<()> {
     // TODO: Handle multiple registries.
-    let mut store = store::Store::from_root()?;
-    let tx = store.get_transaction()?;
-
     let reviews = get_package_reviews(
         package_name,
         package_version,
@@ -151,10 +153,7 @@ fn get_package_reviews(
     Ok(reviews)
 }
 
-fn local_dependancies_table(config: &common::config::Config) -> Result<()> {
-    let mut store = store::Store::from_root()?;
-    let tx = store.get_transaction()?;
-
+fn local_dependancies_table(config: &common::config::Config, tx: &StoreTransaction) -> Result<()> {
     let extensions = extension::get_enabled_extensions(&config)?;
     let working_directory = std::env::current_dir()?;
     log::debug!("Current working directory: {}", working_directory.display());
