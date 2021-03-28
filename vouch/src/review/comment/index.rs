@@ -115,7 +115,7 @@ pub fn get(
     while let Some(row) = rows.next()? {
         comments.insert(common::Comment {
             id: row.get(0)?,
-            path: std::path::PathBuf::from(&row.get::<_, String>(2)?),
+            path: std::path::PathBuf::from(&row.get::<_, String>(1)?),
             summary: row.get::<_, String>(2)?.parse()?,
             message: row.get::<_, String>(3)?,
             selection: get_selection_field(row)?,
