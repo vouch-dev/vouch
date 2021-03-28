@@ -86,7 +86,7 @@ impl vouch_lib::extension::Extension for PyExtension {
             .registries()
             .first()
             .ok_or(format_err!(
-                "Code erorr: vector of registry host names is empty."
+                "Code error: vector of registry host names is empty."
             ))?
             .clone();
 
