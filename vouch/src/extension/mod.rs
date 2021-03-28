@@ -13,7 +13,6 @@ fn parallel_search_extensions(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     working_directory: &std::path::PathBuf,
 ) -> Result<Vec<Result<vouch_lib::extension::RemotePackageMetadata>>> {
-    // TODO: Switch to message passing over channels. Low confidence, high confidence results, etc.
     crossbeam_utils::thread::scope(|s| {
         let mut threads = Vec::new();
         for extension in extensions {
@@ -34,7 +33,7 @@ fn parallel_search_extensions(
     .unwrap()
 }
 
-/// Search all extension remote data registries for package metadata.
+/// Search package registries via extensions for remote package metadata.
 ///
 /// Inspect local file system for clues to narrow down the search_remote_metadata.
 /// This is public because the return value is useful for functionality in the repositories module.
