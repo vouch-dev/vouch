@@ -13,29 +13,10 @@ static HOST_NAME: &str = "npmjs.com";
 ///
 /// Returns a structure which details common errors.
 fn get_parsed_version(version: &Option<&str>) -> Result<ParsedVersion> {
-    let cleaned_version = match version {
-        Some(v) => match v.strip_prefix("==") {
-            Some(v) => v,
-            None => {
-                return Ok(ParsedVersion {
-                    version: version.and_then(|v| Some(v.to_string())),
-                    parse_error: true,
-                    missing: false,
-                });
-            }
-        },
-        None => {
-            return Ok(ParsedVersion {
-                version: version.and_then(|v| Some(v.to_string())),
-                parse_error: true,
-                missing: true,
-            });
-        }
-    };
     Ok(ParsedVersion {
-        version: Some(cleaned_version.to_string()),
+        version: version.and_then(|v| Some(v.to_string())),
         parse_error: false,
-        missing: false,
+        missing: version.is_none(),
     })
 }
 
@@ -64,14 +45,14 @@ pub fn get_dependancies(
     let file = std::fs::File::open(file_path)?;
     let reader = std::io::BufReader::new(file);
     let package_json_file: serde_json::Value = serde_json::from_reader(reader).context(format!(
-        "Failed to parse package.json: {}",
+        "Failed to parse package-lock.json: {}",
         file_path.display()
     ))?;
 
     let mut all_dependancies: HashSet<vouch_lib::extension::LocalDependancy> = HashSet::new();
-    for section in vec!["default", "develop"] {
+    for section in vec!["dependencies"] {
         let json_section = package_json_file[section].as_object().ok_or(format_err!(
-            "Failed to parse '{}' section of package.json file",
+            "Failed to parse '{}' section of package-lock.json file",
             section
         ))?;
         let dependancies = parse_section(&json_section)?;

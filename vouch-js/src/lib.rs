@@ -162,7 +162,7 @@ impl DependancyFileType {
     /// Return file name associated with dependancy type.
     pub fn file_name(&self) -> std::path::PathBuf {
         match self {
-            Self::Npm => std::path::PathBuf::from("package.json"),
+            Self::Npm => std::path::PathBuf::from("package-lock.json"),
         }
     }
 }
