@@ -1,14 +1,11 @@
 use anyhow::{format_err, Context, Result};
-use serde_yaml;
 use std::io::Write;
 
 use crate::common;
 use crate::package;
 use crate::review;
 
-pub type StrFinalizeCallback = fn(&str) -> Result<String>;
-
-static SUMMARY_FILE_NAME: &str = "summary.yaml";
+static REVIEW_FILE_NAME: &str = "review.json";
 
 /// Given a package, returns a package version specific relative directory path.
 ///
@@ -25,22 +22,11 @@ fn get_storage_file_path(review: &review::Review) -> Result<std::path::PathBuf> 
 
     let paths = common::fs::DataPaths::new()?;
     let package_specific_directory = paths.reviews_directory.join(review_directory_path);
-    Ok(package_specific_directory.join(SUMMARY_FILE_NAME))
+    Ok(package_specific_directory.join(REVIEW_FILE_NAME))
 }
 
-/// Store a review summary.
-pub fn add(
-    review: &review::Review,
-    str_finalize_callback: Option<StrFinalizeCallback>,
-) -> Result<()> {
-    // Convert review to string and pass through callback. This provides an
-    // opportunity to add comments.
-    let mut review_string = serde_yaml::to_string(&review)?;
-    review_string = match str_finalize_callback {
-        Some(callback) => callback(&review_string)?,
-        None => review_string,
-    };
-
+/// Store a review.
+pub fn add(review: &review::Review) -> Result<()> {
     let file_path = get_storage_file_path(&review)?;
     let parent_directory = file_path.parent().ok_or(format_err!(
         "Can't find parent directory for file path: {}",
@@ -51,6 +37,10 @@ pub fn add(
         parent_directory.display()
     ))?;
 
+    if file_path.is_file() {
+        std::fs::remove_file(&file_path)?;
+    }
+
     let mut file = std::fs::OpenOptions::new()
         .write(true)
         .create(true)
@@ -59,7 +49,6 @@ pub fn add(
             "Can't open/create file for writing: {}",
             file_path.display()
         ))?;
-    file.write_all(review_string.as_bytes())
-        .expect("Unable to write review to file.");
+    file.write_all(serde_json::to_string_pretty(&review)?.as_bytes())?;
     Ok(())
 }

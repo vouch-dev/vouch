@@ -13,6 +13,6 @@ pub use crate::review::common::{PackageSecurity, Review, ReviewConfidence};
 
 pub fn store(review: &Review, tx: &StoreTransaction) -> Result<()> {
     index::update(&review, &tx)?;
-    fs::add(&review, None)?;
+    fs::add(&review)?;
     Ok(())
 }
