@@ -1,4 +1,3 @@
-use crate::package;
 use crate::review;
 use anyhow::{Context, Result};
 use std::io::Write;
@@ -14,7 +13,7 @@ struct ActiveReview {
 
 /// Ensure active review file is in place.
 pub fn ensure(
-    package: &package::Package,
+    review: &review::Review,
     reviews_directory: &std::path::PathBuf,
 ) -> Result<std::path::PathBuf> {
     let review_file_path = reviews_directory.join("local.review");
@@ -24,9 +23,12 @@ pub fn ensure(
 
     let active_review = ActiveReview {
         title: "local".to_string(),
-        description: format!("Package name-version: {}-{}", package.name, package.version),
+        description: format!(
+            "Package name-version: {}-{}",
+            review.package.name, review.package.version
+        ),
         is_primary: Some(true),
-        comments: Vec::new(),
+        comments: review.comments.clone(),
     };
 
     let mut file = std::fs::OpenOptions::new()

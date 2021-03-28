@@ -57,9 +57,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     review::workspace::analyse(&workspace_directory)?;
 
     let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
-
-    // TODO: Active ensure needs to create active review file from review if existing.
-    let active_review_file = review::active::ensure(&review.package, &reviews_directory)?;
+    let active_review_file = review::active::ensure(&review, &reviews_directory)?;
 
     review::tool::run(&workspace_directory, &config)?;
 
