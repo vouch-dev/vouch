@@ -233,10 +233,7 @@ fn get_new_review(
     config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<review::Review> {
-    let extensions = extension::get_enabled_extensions(&config)?
-        .into_iter()
-        .filter(|extension| extension_names.contains(&extension.name()))
-        .collect();
+    let extensions = extension::get_enabled_extensions(&extension_names, &config)?;
     let package = get_insert_package(&package_name, &package_version, &extensions, &tx)?.ok_or(
         format_err!("Failed to derive package metadata from extension(s)."),
     )?;

@@ -7,8 +7,12 @@ use crate::extension;
 use super::report;
 use super::table;
 
-pub fn report(config: &common::config::Config, tx: &StoreTransaction) -> Result<()> {
-    let extensions = extension::get_enabled_extensions(&config)?;
+pub fn report(
+    extension_names: &std::collections::BTreeSet<String>,
+    config: &common::config::Config,
+    tx: &StoreTransaction,
+) -> Result<()> {
+    let extensions = extension::get_enabled_extensions(&extension_names, &config)?;
     let working_directory = std::env::current_dir()?;
     log::debug!("Current working directory: {}", working_directory.display());
 
@@ -45,7 +49,7 @@ pub fn report(config: &common::config::Config, tx: &StoreTransaction) -> Result<
         }
 
         let table = table::get(&dependancy_reports)?;
-        println!("Ecosystem: {}", extension.name());
+        println!("Extension: {}", extension.name());
         table.printstd();
     }
     Ok(())

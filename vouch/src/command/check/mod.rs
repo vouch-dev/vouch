@@ -51,7 +51,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
             )?;
         }
         None => {
-            dependancies::report(&config, &tx)?;
+            dependancies::report(&extension_names, &config, &tx)?;
         }
     }
     Ok(())

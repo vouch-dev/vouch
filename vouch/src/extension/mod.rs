@@ -126,6 +126,7 @@ pub fn get_all_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extensio
 
 /// Returns enabled extensions.
 pub fn get_enabled_extensions(
+    names: &std::collections::BTreeSet<String>,
     config: &common::config::Config,
 ) -> Result<Vec<Box<dyn vouch_lib::extension::Extension>>> {
     log::debug!("Identifying enabled extensions.");
@@ -138,10 +139,13 @@ pub fn get_enabled_extensions(
                 .get(&extension.name())
                 .unwrap_or(&false)
         })
+        .filter(|extension| names.contains(&extension.name()))
         .collect();
 
     Ok(extensions)
 }
+
+// pub fn get_enabled_extensions_by_name()
 
 /// Update config with current set of extensions.
 pub fn update_config(config: &mut common::config::Config) -> Result<()> {
