@@ -13,17 +13,16 @@ fn parallel_search_extensions(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
 ) -> Result<Vec<Result<vouch_lib::extension::RemotePackageMetadata>>> {
     crossbeam_utils::thread::scope(|s| {
-        let mut threads = Vec::new();
-        for extension in extensions {
-            threads.push(s.spawn(move |_| {
-                extension.remote_package_metadata(&package_name, &package_version)
-            }));
-        }
-        let mut result = Vec::new();
-        for thread in threads {
-            result.push(thread.join().unwrap());
-        }
-        Ok(result)
+        let threads: Vec<_> = extensions
+            .iter()
+            .map(|extension| {
+                s.spawn(move |_| extension.remote_package_metadata(&package_name, &package_version))
+            })
+            .collect();
+        Ok(threads
+            .into_iter()
+            .map(|thread| thread.join().unwrap())
+            .collect())
     })
     .unwrap()
 }
