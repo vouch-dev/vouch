@@ -60,7 +60,6 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let active_review_file = review::active::ensure(&review, &reviews_directory)?;
 
     review::tool::run(&workspace_directory, &config)?;
-
     add_user_comments(&mut review, &active_review_file, &tx)?;
 
     if dialoguer::Confirm::new()
@@ -71,7 +70,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         let commit_message = get_commit_message(&review.package, &editing_mode);
         tx.commit(&commit_message)?;
 
-        // TODO: Cleanup ongoing review.
+        review::workspace::cleanup(&workspace_directory)?;
     } else {
         println!("Not committing review. Review saved as ongoing.");
     }

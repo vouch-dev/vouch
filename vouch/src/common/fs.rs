@@ -79,7 +79,7 @@ pub fn git(args: Vec<&str>, working_directory: &std::path::PathBuf) -> Result<()
 }
 
 /// Remove empty directories along relative path.
-fn remove_empty_directories(
+pub fn remove_empty_directories(
     relative_path: &std::path::PathBuf,
     working_directory: &std::path::PathBuf,
 ) -> Result<()> {

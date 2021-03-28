@@ -331,3 +331,10 @@ mod tests {
         Ok(())
     }
 }
+
+pub fn cleanup(workspace: &std::path::PathBuf) -> Result<()> {
+    std::fs::remove_dir_all(&workspace)?;
+    let paths = common::fs::DataPaths::new()?;
+    common::fs::remove_empty_directories(&workspace, &paths.ongoing_reviews_directory)?;
+    Ok(())
+}
