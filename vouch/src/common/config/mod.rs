@@ -29,6 +29,10 @@ impl Config {
 
     pub fn dump(&self) -> Result<()> {
         let paths = super::fs::ConfigPaths::new()?;
+        if paths.config_file.is_file() {
+            std::fs::remove_file(&paths.config_file)?;
+        }
+
         let file = std::fs::OpenOptions::new()
             .write(true)
             .append(false)
