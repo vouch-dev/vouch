@@ -85,18 +85,8 @@ impl common::Extension for ProcessExtension {
         &self,
         package_name: &str,
         package_version: &str,
-        working_directory: &std::path::PathBuf,
     ) -> Result<common::RemotePackageMetadata> {
-        let working_directory = working_directory.to_str().ok_or(format_err!(
-            "Failed to parse path into string: {}",
-            working_directory.display()
-        ))?;
-        let args = vec![
-            "remote-package-metadata",
-            package_name,
-            package_version,
-            working_directory,
-        ];
+        let args = vec!["remote-package-metadata", package_name, package_version];
         let output: Box<common::RemotePackageMetadata> = run_process(&self.process_path_, &args)?;
         Ok(*output)
     }

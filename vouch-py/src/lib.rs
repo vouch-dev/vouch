@@ -73,11 +73,7 @@ impl vouch_lib::extension::Extension for PyExtension {
         &self,
         package_name: &str,
         package_version: &str,
-        working_directory: &std::path::PathBuf,
     ) -> Result<vouch_lib::extension::RemotePackageMetadata> {
-        let dependancy_files = identify_dependancy_files(&working_directory);
-        let found_local_use = dependancy_files.is_some();
-
         // Query remote package registry for given package.
         let registry_human_url = get_registry_human_url(&self, &package_name, &package_version)?;
 
@@ -94,7 +90,6 @@ impl vouch_lib::extension::Extension for PyExtension {
         let archive_url = get_archive_url(&entry_json, &package_version)?;
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
-            found_local_use,
             registry_host_name: registry_host_name,
             registry_human_url: registry_human_url.to_string(),
             archive_url: archive_url.to_string(),

@@ -26,12 +26,8 @@ pub fn run_command<T: common::Extension + std::fmt::Debug>(
     args: &Arguments,
     extension: &mut T,
 ) -> Result<()> {
-    let working_directory = std::path::PathBuf::from(&args.working_directory);
-    let local_dependancies = extension.remote_package_metadata(
-        &args.package_name,
-        &args.package_version,
-        &working_directory,
-    )?;
+    let local_dependancies =
+        extension.remote_package_metadata(&args.package_name, &args.package_version)?;
     println!("{}", serde_json::to_string(&local_dependancies)?);
     Ok(())
 }

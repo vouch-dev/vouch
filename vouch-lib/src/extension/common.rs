@@ -14,7 +14,6 @@ pub struct LocalDependancy {
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RemotePackageMetadata {
-    pub found_local_use: bool,
     pub registry_host_name: String,
     pub registry_human_url: String,
     pub archive_url: String,
@@ -49,6 +48,5 @@ pub trait Extension: Send + Sync {
         &self,
         package_name: &str,
         package_version: &str,
-        working_directory: &std::path::PathBuf,
     ) -> Result<RemotePackageMetadata>;
 }

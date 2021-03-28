@@ -11,17 +11,12 @@ fn parallel_search_extensions(
     package_name: &str,
     package_version: &str,
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
-    working_directory: &std::path::PathBuf,
 ) -> Result<Vec<Result<vouch_lib::extension::RemotePackageMetadata>>> {
     crossbeam_utils::thread::scope(|s| {
         let mut threads = Vec::new();
         for extension in extensions {
             threads.push(s.spawn(move |_| {
-                extension.remote_package_metadata(
-                    &package_name,
-                    &package_version,
-                    &working_directory,
-                )
+                extension.remote_package_metadata(&package_name, &package_version)
             }));
         }
         let mut result = Vec::new();
@@ -47,13 +42,7 @@ pub fn get_remote_package_metadata<'a>(
         vouch_lib::extension::RemotePackageMetadata,
     )>,
 > {
-    let working_directory = std::env::current_dir()?;
-    let search_results = parallel_search_extensions(
-        &package_name,
-        &package_version,
-        &extensions,
-        &working_directory,
-    )?;
+    let search_results = parallel_search_extensions(&package_name, &package_version, &extensions)?;
 
     // TODO: Allow user to select between multiple found results.
     // Select first plausable result.
