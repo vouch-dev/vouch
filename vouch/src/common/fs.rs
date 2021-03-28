@@ -206,3 +206,38 @@ impl GitTransaction {
         Ok(())
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum PathType {
+    File,
+    Directory,
+}
+
+fn blake3_digest<R: std::io::Read>(mut reader: R) -> Result<String> {
+    let mut hasher = blake3::Hasher::new();
+    let mut buffer = [0; 1024];
+
+    loop {
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        hasher.update(&buffer[..count]);
+    }
+
+    Ok(hasher.finalize().to_hex().as_str().to_string())
+}
+
+fn hash_file(path: &std::path::PathBuf) -> Result<String> {
+    let input = std::fs::File::open(path)?;
+    let reader = std::io::BufReader::new(input);
+    Ok(blake3_digest(reader)?)
+}
+
+pub fn hash(path: &std::path::PathBuf) -> Result<(String, PathType)> {
+    if path.is_file() {
+        return Ok((hash_file(&path)?, PathType::File));
+    } else {
+        unimplemented!("Only file hashing is currently implemented.");
+    }
+}

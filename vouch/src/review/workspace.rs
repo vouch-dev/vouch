@@ -2,30 +2,38 @@ use anyhow::{format_err, Context, Result};
 use std::io::Write;
 
 use crate::common;
-use crate::package;
 use crate::review;
 
 /// Ensure review workspace setup is complete.
 ///
 /// Download and unpack package for review.
 /// If ongoing workspace exists, return directory path.
-pub fn ensure(package: &package::Package) -> Result<std::path::PathBuf> {
-    if let Some(workspace_directory) = get_ongoing_workspace_directory(&package)? {
-        return Ok(workspace_directory);
+pub fn ensure(
+    package_name: &str,
+    package_version: &str,
+    registry_host_name: &str,
+    archive_url: &url::Url,
+) -> Result<(std::path::PathBuf, Option<String>)> {
+    if let Some(workspace_directory) =
+        get_existing(&package_name, &package_version, &registry_host_name)?
+    {
+        return Ok((workspace_directory, None));
     }
 
-    let extension = get_archive_extension(&package.archive_url)?;
+    let file_extension = get_archive_file_extension(&archive_url)?;
 
-    let package_unique_directory = setup_unique_package_directory(&package)?;
-    let archive_path = package_unique_directory.join(format!("package.{}", extension));
+    let package_unique_directory =
+        setup_unique_package_directory(&package_name, &package_version, &registry_host_name)?;
+    let archive_path = package_unique_directory.join(format!("package.{}", file_extension));
 
-    download_archive(&package.archive_url, &archive_path)?;
+    download_archive(&archive_url, &archive_path)?;
+    let (archive_hash, _) = common::fs::hash(&archive_path)?;
 
     log::debug!("Extracting archive: {}", archive_path.display());
-    let workspace_directory = match extension.as_str() {
+    let workspace_directory = match file_extension.as_str() {
         "zip" => extract_zip(&archive_path, &package_unique_directory)?,
         "tgz" | "tar.gz" => extract_tar_gz(&archive_path, &package_unique_directory)?,
-        _ => unimplemented!("Unsupported archive file type: {}", extension),
+        _ => unimplemented!("Unsupported archive file type: {}", file_extension),
     };
     log::debug!("Archive extraction complete.");
     std::fs::remove_file(&archive_path)?;
@@ -33,19 +41,25 @@ pub fn ensure(package: &package::Package) -> Result<std::path::PathBuf> {
     let workspace_directory = normalize_workspace_directory_name(
         &workspace_directory,
         &package_unique_directory,
-        &package,
+        &package_name,
+        &package_version,
     )?;
 
-    Ok(workspace_directory)
+    Ok((workspace_directory, Some(archive_hash)))
 }
 
 /// Returns optional path to existing review workspace directory.
-fn get_ongoing_workspace_directory(
-    package: &package::Package,
+pub fn get_existing(
+    package_name: &str,
+    package_version: &str,
+    registry_host_name: &str,
 ) -> Result<Option<std::path::PathBuf>> {
-    let package_unique_directory = get_unique_package_directory(&package)?;
-    let workspace_directory =
-        package_unique_directory.join(get_workspace_directory_name(&package)?);
+    let package_unique_directory =
+        get_unique_package_directory(&package_name, &package_version, &registry_host_name)?;
+    let workspace_directory = package_unique_directory.join(get_workspace_directory_name(
+        &package_name,
+        &package_version,
+    )?);
     if workspace_directory.exists() {
         Ok(Some(workspace_directory))
     } else {
@@ -54,7 +68,7 @@ fn get_ongoing_workspace_directory(
 }
 
 /// Extract and return archive file extension from archive URL.
-fn get_archive_extension(archive_url: &url::Url) -> Result<String> {
+fn get_archive_file_extension(archive_url: &url::Url) -> Result<String> {
     let path = std::path::Path::new(archive_url.path());
     if path
         .to_str()
@@ -77,17 +91,31 @@ fn get_archive_extension(archive_url: &url::Url) -> Result<String> {
         .to_owned())
 }
 
-fn get_unique_package_directory(package: &package::Package) -> Result<std::path::PathBuf> {
+fn get_unique_package_directory(
+    package_name: &str,
+    package_version: &str,
+    registry_host_name: &str,
+) -> Result<std::path::PathBuf> {
     let data_paths = common::fs::DataPaths::new()?;
-    let package_unique_directory = data_paths
-        .ongoing_reviews_directory
-        .join(review::fs::get_unique_package_path(&package)?);
+    let package_unique_directory =
+        data_paths
+            .ongoing_reviews_directory
+            .join(review::fs::get_unique_package_path(
+                &package_name,
+                &package_version,
+                &registry_host_name,
+            )?);
     Ok(package_unique_directory)
 }
 
 /// Setup package version unique workspace parent directory.
-fn setup_unique_package_directory(package: &package::Package) -> Result<std::path::PathBuf> {
-    let package_unique_directory = get_unique_package_directory(&package)?;
+fn setup_unique_package_directory(
+    package_name: &str,
+    package_version: &str,
+    registry_host_name: &str,
+) -> Result<std::path::PathBuf> {
+    let package_unique_directory =
+        get_unique_package_directory(&package_name, &package_version, &registry_host_name)?;
     std::fs::create_dir_all(&package_unique_directory).context(format!(
         "Can't create directory: {}",
         package_unique_directory.display()
@@ -201,19 +229,26 @@ fn get_tar_top_directory_name(archive_path: &std::path::PathBuf) -> Result<Strin
     Ok(top_directory_name.to_string())
 }
 
-fn get_workspace_directory_name(package: &package::Package) -> Result<std::path::PathBuf> {
+fn get_workspace_directory_name(
+    package_name: &str,
+    package_version: &str,
+) -> Result<std::path::PathBuf> {
     Ok(std::path::PathBuf::from(format!(
         "{}-{}",
-        package.name, package.version
+        package_name, package_version
     )))
 }
 
 fn normalize_workspace_directory_name(
     workspace_directory: &std::path::PathBuf,
     parent_directory: &std::path::PathBuf,
-    package: &package::Package,
+    package_name: &str,
+    package_version: &str,
 ) -> Result<std::path::PathBuf> {
-    let target_directory = parent_directory.join(get_workspace_directory_name(&package)?);
+    let target_directory = parent_directory.join(get_workspace_directory_name(
+        &package_name,
+        &package_version,
+    )?);
     std::fs::rename(workspace_directory, &target_directory)?;
     Ok(target_directory)
 }
@@ -262,15 +297,9 @@ fn get_directory_line_counts(
     Ok(directory_line_counts.clone())
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum PathType {
-    File,
-    Directory,
-}
-
 #[derive(Debug)]
 pub struct PathAnalysis {
-    pub path_type: PathType,
+    pub path_type: common::fs::PathType,
     pub line_count: usize,
 }
 
@@ -283,8 +312,8 @@ pub fn analyse(workspace_directory: &std::path::PathBuf) -> Result<Analysis> {
 
     let mut analysis = std::collections::BTreeMap::new();
     for (path_type, line_counts) in vec![
-        (PathType::File, file_line_counts),
-        (PathType::Directory, directory_line_counts),
+        (common::fs::PathType::File, file_line_counts),
+        (common::fs::PathType::Directory, directory_line_counts),
     ] {
         for (path, line_count) in line_counts.into_iter() {
             let path = path.strip_prefix(workspace_directory)?.to_path_buf();
@@ -307,7 +336,7 @@ mod tests {
     #[test]
     fn test_correct_extension_extracted_for_tar_gz() -> Result<()> {
         let result =
-            get_archive_extension(&url::Url::parse("https://localhost/d3/d3-4.10.0.tar.gz")?)?;
+            get_archive_file_extension(&url::Url::parse("https://localhost/d3/d3-4.10.0.tar.gz")?)?;
         let expected = "tar.gz".to_string();
         assert!(result == expected, format!("unexpected result: {}", result));
         Ok(())

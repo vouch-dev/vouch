@@ -92,14 +92,12 @@ impl vouch_lib::extension::Extension for PyExtension {
 
         let entry_json = get_registry_entry_json(&package_name)?;
         let archive_url = get_archive_url(&entry_json, &package_version)?;
-        let archive_hash = get_source_code_hash(&entry_json, &package_version)?;
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             found_local_use,
             registry_host_name: Some(registry_host_name),
             registry_human_url: registry_human_url.map(|x| x.to_string()),
             archive_url: Some(archive_url.to_string()),
-            archive_hash: Some(archive_hash),
         })
     }
 }
@@ -156,27 +154,6 @@ fn get_archive_url(
         }
     }
     Err(format_err!("Failed to identify package archive URL."))
-}
-
-fn get_source_code_hash(
-    registry_entry_json: &serde_json::Value,
-    package_version: &str,
-) -> Result<String> {
-    let releases = registry_entry_json["releases"][package_version]
-        .as_array()
-        .ok_or(format_err!("Failed to parse releases array."))?;
-    for release in releases {
-        let python_version = release["python_version"]
-            .as_str()
-            .ok_or(format_err!("Failed to parse python version."))?;
-        if python_version == "source" {
-            return Ok(release["digests"]["sha256"]
-                .as_str()
-                .ok_or(format_err!("Failed to parse package archive hash."))?
-                .to_string());
-        }
-    }
-    Err(format_err!("Failed to identify package archive hash."))
 }
 
 /// Package dependancy file types.

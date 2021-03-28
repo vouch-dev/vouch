@@ -2,7 +2,6 @@ use anyhow::{format_err, Context, Result};
 use std::io::Write;
 
 use crate::common;
-use crate::package;
 use crate::review;
 
 static REVIEW_FILE_NAME: &str = "review.json";
@@ -10,15 +9,23 @@ static REVIEW_FILE_NAME: &str = "review.json";
 /// Given a package, returns a package version specific relative directory path.
 ///
 /// Example: "pypi.org/numpy/1.18.5"
-pub fn get_unique_package_path(package: &package::Package) -> Result<std::path::PathBuf> {
-    let registry_host_name = std::path::PathBuf::from(&package.registry.host_name);
+pub fn get_unique_package_path(
+    package_name: &str,
+    package_version: &str,
+    registry_host_name: &str,
+) -> Result<std::path::PathBuf> {
+    let registry_host_name = std::path::PathBuf::from(&registry_host_name);
     Ok(registry_host_name
-        .join(&package.name)
-        .join(&package.version))
+        .join(&package_name)
+        .join(&package_version))
 }
 
 fn get_storage_file_path(review: &review::Review) -> Result<std::path::PathBuf> {
-    let review_directory_path = get_unique_package_path(&review.package)?;
+    let review_directory_path = get_unique_package_path(
+        &review.package.name,
+        &review.package.version,
+        &review.package.registry.host_name,
+    )?;
 
     let paths = common::fs::DataPaths::new()?;
     let package_specific_directory = paths.reviews_directory.join(review_directory_path);

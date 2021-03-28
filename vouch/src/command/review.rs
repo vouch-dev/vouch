@@ -45,7 +45,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
-    let (mut review, editing_mode) = get_review(
+    let (mut review, edit_mode, workspace_directory) = setup_review(
         &args.package_name,
         &args.package_version,
         &extension_names,
@@ -53,7 +53,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         &tx,
     )?;
 
-    let workspace_directory = review::workspace::ensure(&review.package)?;
+    // TODO: Make use of workspace analysis in review.
     review::workspace::analyse(&workspace_directory)?;
 
     let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
@@ -67,7 +67,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         .interact()?
     {
         review::store(&review, &tx)?;
-        let commit_message = get_commit_message(&review.package, &editing_mode);
+        let commit_message = get_commit_message(&review.package, &edit_mode);
         tx.commit(&commit_message)?;
         println!("Review committed.");
 
@@ -103,44 +103,44 @@ fn add_user_comments(
 }
 
 /// Review edit mode.
-enum EditingMode {
+enum ReviewEditMode {
     Create,
     Update,
 }
 
-/// Retrieve existing or new review.
-fn get_review(
+/// Setup review for editing.
+fn setup_review(
     package_name: &str,
     package_version: &str,
     extension_names: &std::collections::BTreeSet<String>,
     config: &common::config::Config,
     tx: &StoreTransaction,
-) -> Result<(review::Review, EditingMode)> {
-    if let Some(review) =
-        get_existing_review(&package_name, &package_version, &extension_names, &tx)?
+) -> Result<(review::Review, ReviewEditMode, std::path::PathBuf)> {
+    if let Some((review, workspace_directory)) =
+        setup_existing_review(&package_name, &package_version, &extension_names, &tx)?
     {
         log::debug!("Existing review found.");
-        Ok((review, EditingMode::Update))
+        Ok((review, ReviewEditMode::Update, workspace_directory))
     } else {
         log::debug!("No existing review found. Starting new review.");
-        let review = get_new_review(
+        let (review, workspace_directory) = setup_new_review(
             &package_name,
             &package_version,
             &extension_names,
             &config,
             &tx,
         )?;
-        Ok((review, EditingMode::Create))
+        Ok((review, ReviewEditMode::Create, workspace_directory))
     }
 }
 
-// Check index for existing root peer review.
-fn get_existing_review(
+// Setup existing review for editing.
+fn setup_existing_review(
     package_name: &str,
     package_version: &str,
     extension_names: &BTreeSet<String>,
     tx: &StoreTransaction,
-) -> Result<Option<review::Review>> {
+) -> Result<Option<(review::Review, std::path::PathBuf)>> {
     log::debug!("Checking index for existing root peer review.");
     let root_peer =
         peer::index::get_root(&tx)?.ok_or(format_err!("Cant find root peer. Index corrupt."))?;
@@ -162,10 +162,21 @@ fn get_existing_review(
     );
 
     if reviews.len() > 1 {
-        handle_multiple_matching_reviews(&reviews)
-    } else {
-        Ok(reviews.first().cloned())
+        handle_multiple_matching_reviews(&reviews)?;
+        return Ok(None);
     }
+
+    let review = match reviews.first() {
+        Some(review) => review,
+        None => return Ok(None),
+    };
+    let (workspace_directory, _archive_hash) = review::workspace::ensure(
+        &review.package.name,
+        &review.package.version,
+        &review.package.registry.host_name,
+        &review.package.archive_url,
+    )?;
+    Ok(Some((review.clone(), workspace_directory)))
 }
 
 /// Filter reviews on given extension.
@@ -195,9 +206,7 @@ fn filter_reviews(
 }
 
 /// Request extension specification when multiple matching reviews found.
-fn handle_multiple_matching_reviews(
-    reviews: &Vec<review::Review>,
-) -> Result<Option<review::Review>> {
+fn handle_multiple_matching_reviews(reviews: &Vec<review::Review>) -> Result<()> {
     assert!(reviews.len() > 1);
 
     let registry_host_names: std::collections::BTreeSet<String> = reviews
@@ -225,55 +234,45 @@ fn handle_multiple_matching_reviews(
     ));
 }
 
-/// Get new review.
-fn get_new_review(
+/// Setup new review for editing.
+fn setup_new_review(
     package_name: &str,
     package_version: &str,
     extension_names: &BTreeSet<String>,
     config: &common::config::Config,
     tx: &StoreTransaction,
-) -> Result<review::Review> {
+) -> Result<(review::Review, std::path::PathBuf)> {
     let extensions = extension::get_enabled_extensions(&extension_names, &config)?;
-    let package = get_insert_package(&package_name, &package_version, &extensions, &tx)?.ok_or(
-        format_err!("Failed to derive package metadata from extension(s)."),
-    )?;
-    get_insert_unset_review(&package, &tx)
+    let (package, workspace_directory) =
+        ensure_package_setup(&package_name, &package_version, &extensions, &tx)?;
+    let review = get_insert_unset_review(&package, &tx)?;
+    Ok((review, workspace_directory))
 }
 
 /// Attempt to retrieve package from index.
 /// Add package metadata using extension(s) if missing.
-fn get_insert_package(
+fn ensure_package_setup(
     package_name: &str,
     package_version: &str,
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     tx: &common::StoreTransaction,
-) -> Result<Option<package::Package>> {
-    let (_extension, remote_package_metadata) =
+) -> Result<(package::Package, std::path::PathBuf)> {
+    let (extension, remote_package_metadata) =
         extension::get_remote_package_metadata(&package_name, &package_version, &extensions)?
-            .ok_or(format_err!("Failed to find package in package registries."))?;
-    let registry_human_url = match &remote_package_metadata.registry_human_url {
-        Some(url) => url::Url::parse(url.as_str())?,
-        None => return Ok(None),
-    };
-    let archive_url = url::Url::parse(
-        remote_package_metadata
-            .archive_url
+            .ok_or(format_err!(
+                "Extensions have failed to find package in remote package registries."
+            ))?;
+
+    let registry_host_name =
+        &remote_package_metadata
+            .registry_host_name
             .clone()
-            .ok_or(format_err!("Could not find archive URL."))?
-            .as_str(),
-    )?;
+            .ok_or(format_err!(
+            "Extension {name} has provided insufficient data: registry host name not specified.",
+            name = extension.name()
+        ))?;
 
-    let archive_hash = &remote_package_metadata
-        .archive_hash
-        .clone()
-        .ok_or(format_err!("Could not find archive hash."))?;
-
-    let registry_host_name = &remote_package_metadata
-        .registry_host_name
-        .clone()
-        .ok_or(format_err!("Registry host name not specified."))?;
-
-    let package = match package::index::get(
+    let package = package::index::get(
         &package::index::Fields {
             package_name: Some(&package_name),
             package_version: Some(&package_version),
@@ -283,20 +282,62 @@ fn get_insert_package(
         &tx,
     )?
     .into_iter()
-    .next()
-    {
-        Some(package) => package,
-        None => package::index::insert(
-            &package_name,
-            &package_version,
-            &registry_human_url,
-            &archive_url,
-            &archive_hash,
-            &registry_host_name,
-            &tx,
-        )?,
+    .next();
+
+    let package = match package {
+        Some(package) => {
+            let (workspace_directory, _archive_hash) = review::workspace::ensure(
+                &package.name,
+                &package.version,
+                &package.registry.host_name,
+                &package.archive_url,
+            )?;
+            (package, workspace_directory)
+        }
+        None => {
+            let registry_human_url =
+                url::Url::parse(&remote_package_metadata.registry_human_url.ok_or(
+                    format_err!(
+                        "Extension {name} has provided insufficient data: \
+                    missing package human friendly URL",
+                        name = extension.name()
+                    ),
+                )?)?;
+            let archive_url = url::Url::parse(
+                remote_package_metadata
+                    .archive_url
+                    .clone()
+                    .ok_or(format_err!(
+                        "Extension {name} has provided insufficient data: \
+                    archive URL not provided",
+                        name = extension.name()
+                    ))?
+                    .as_str(),
+            )?;
+            let (workspace_directory, archive_hash) = review::workspace::ensure(
+                &package_name,
+                &package_version,
+                &registry_host_name,
+                &archive_url,
+            )?;
+            let archive_hash = archive_hash.ok_or(format_err!(
+                "New package object is being added to index but archive_hash is None. \
+                Likely stale ongoing review."
+            ))?;
+
+            let package = package::index::insert(
+                &package_name,
+                &package_version,
+                &registry_human_url,
+                &archive_url,
+                &archive_hash,
+                &registry_host_name,
+                &tx,
+            )?;
+            (package, workspace_directory)
+        }
     };
-    Ok(Some(package))
+    Ok(package)
 }
 
 fn get_insert_unset_review(
@@ -316,10 +357,10 @@ fn get_insert_unset_review(
     Ok(unset_review)
 }
 
-fn get_commit_message(package: &package::Package, editing_mode: &EditingMode) -> String {
+fn get_commit_message(package: &package::Package, editing_mode: &ReviewEditMode) -> String {
     let message_prefix = match editing_mode {
-        EditingMode::Create => "Creating",
-        EditingMode::Update => "Updating",
+        ReviewEditMode::Create => "Creating",
+        ReviewEditMode::Update => "Updating",
     };
     format!(
         "{message_prefix} review: {registry_host_name}/{package_name}/{package_version}",
