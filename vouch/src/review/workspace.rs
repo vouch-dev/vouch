@@ -332,7 +332,8 @@ mod tests {
     }
 }
 
-pub fn cleanup(workspace: &std::path::PathBuf) -> Result<()> {
+pub fn remove(workspace: &std::path::PathBuf) -> Result<()> {
+    log::debug!("Removing workspace directory: {}", workspace.display());
     std::fs::remove_dir_all(&workspace)?;
     let paths = common::fs::DataPaths::new()?;
     common::fs::remove_empty_directories(&workspace, &paths.ongoing_reviews_directory)?;

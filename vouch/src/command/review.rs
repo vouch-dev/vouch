@@ -69,8 +69,9 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         review::store(&review, &tx)?;
         let commit_message = get_commit_message(&review.package, &editing_mode);
         tx.commit(&commit_message)?;
+        println!("Review committed.");
 
-        review::workspace::cleanup(&workspace_directory)?;
+        review::workspace::remove(&workspace_directory)?;
     } else {
         println!("Not committing review. Review saved as ongoing.");
     }
