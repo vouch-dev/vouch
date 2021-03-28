@@ -7,12 +7,16 @@ use crate::common;
 
 static EXTENSION_FILE_NAME_PREFIX: &str = "vouch-";
 
-fn parallel_search_extensions(
+/// Search package registries via extensions for remote package metadata.
+///
+/// Raises errors for no results or multiple results. Ok for single result.
+pub fn search<'a>(
     package_name: &str,
     package_version: &str,
-    extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
-) -> Result<Vec<Result<vouch_lib::extension::RemotePackageMetadata>>> {
-    crossbeam_utils::thread::scope(|s| {
+    extensions: &'a Vec<Box<dyn vouch_lib::extension::Extension>>,
+) -> Result<vouch_lib::extension::RemotePackageMetadata> {
+    type SearchResults = Result<Vec<Result<vouch_lib::extension::RemotePackageMetadata>>>;
+    let search_results: SearchResults = crossbeam_utils::thread::scope(|s| {
         let threads: Vec<_> = extensions
             .iter()
             .map(|extension| {
@@ -24,36 +28,44 @@ fn parallel_search_extensions(
             .map(|thread| thread.join().unwrap())
             .collect())
     })
-    .unwrap()
+    .unwrap();
+
+    let extensions_search_results =
+        search_results.map(|sr| sr.into_iter().zip(extensions.iter()).collect())?;
+    select_search_result(extensions_search_results)
 }
 
-/// Search package registries via extensions for remote package metadata.
-///
-/// Inspect local file system for clues to narrow down the search_remote_metadata.
-/// This is public because the return value is useful for functionality in the repositories module.
-pub fn get_remote_package_metadata<'a>(
-    package_name: &str,
-    package_version: &str,
-    extensions: &'a Vec<Box<dyn vouch_lib::extension::Extension>>,
-) -> Result<
-    Option<(
+/// Parses potentially multi-result search output. Handles no result or multiple result cases.
+fn select_search_result<'a>(
+    extensions_search_results: Vec<(
+        Result<vouch_lib::extension::RemotePackageMetadata>,
         &'a Box<dyn vouch_lib::extension::Extension>,
-        vouch_lib::extension::RemotePackageMetadata,
     )>,
-> {
-    let search_results = parallel_search_extensions(&package_name, &package_version, &extensions)?;
+) -> Result<vouch_lib::extension::RemotePackageMetadata> {
+    let multiple_results = extensions_search_results.len() > 1;
 
-    // TODO: Allow user to select between multiple found results.
-    // Select first plausable result.
-    for (search_result, extension) in search_results.into_iter().zip(extensions.iter()) {
-        match search_result {
-            Ok(search_result) => {
-                return Ok(Some((extension, search_result)));
-            }
-            Err(_) => continue,
-        };
+    let mut selection = Err(format_err!(
+        "Extensions have failed to find package in remote package registries."
+    ));
+    let mut extension_names = Vec::<_>::new();
+
+    for (search_result, extension) in extensions_search_results.into_iter() {
+        extension_names.push(extension.name());
+        if search_result.is_ok() {
+            selection = search_result;
+        }
     }
-    Ok(None)
+
+    if multiple_results {
+        Err(format_err!(
+            "Found multiple matching candidate packages.\n\
+        Please specify an extension using --extension (-e).\n\
+        Matching extensions: {}",
+            extension_names.join(", ")
+        ))
+    } else {
+        selection
+    }
 }
 
 /// Identify all supported dependancies in a local code base.

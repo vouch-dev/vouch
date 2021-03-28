@@ -257,11 +257,7 @@ fn ensure_package_setup(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     tx: &common::StoreTransaction,
 ) -> Result<(package::Package, std::path::PathBuf)> {
-    let (_extension, remote_package_metadata) =
-        extension::get_remote_package_metadata(&package_name, &package_version, &extensions)?
-            .ok_or(format_err!(
-                "Extensions have failed to find package in remote package registries."
-            ))?;
+    let remote_package_metadata = extension::search(&package_name, &package_version, &extensions)?;
 
     let package = package::index::get(
         &package::index::Fields {
