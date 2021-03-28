@@ -15,9 +15,9 @@ pub struct LocalDependancy {
 #[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RemotePackageMetadata {
     pub found_local_use: bool,
-    pub registry_host_name: Option<String>,
-    pub registry_human_url: Option<String>,
-    pub archive_url: Option<String>,
+    pub registry_host_name: String,
+    pub registry_human_url: String,
+    pub archive_url: String,
 }
 
 pub trait Extension: Send + Sync {

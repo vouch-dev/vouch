@@ -90,9 +90,9 @@ impl vouch_lib::extension::Extension for JsExtension {
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             found_local_use,
-            registry_host_name: Some(registry_host_name),
-            registry_human_url: registry_human_url.map(|x| x.to_string()),
-            archive_url: Some(archive_url.to_string()),
+            registry_host_name: registry_host_name,
+            registry_human_url: registry_human_url.to_string(),
+            archive_url: archive_url.to_string(),
         })
     }
 }
@@ -101,7 +101,7 @@ fn get_registry_human_url(
     extension: &JsExtension,
     package_name: &str,
     package_version: &str,
-) -> Result<Option<url::Url>> {
+) -> Result<url::Url> {
     // Example return value: https://www.npmjs.com/package/d3/v/6.5.0
     let handlebars_registry = handlebars::Handlebars::new();
     let url = handlebars_registry.render_template(
@@ -111,7 +111,7 @@ fn get_registry_human_url(
             "package_version" => package_version,
         },
     )?;
-    Ok(Some(url::Url::parse(url.as_str())?))
+    Ok(url::Url::parse(url.as_str())?)
 }
 
 fn get_registry_entry_json(package_name: &str) -> Result<serde_json::Value> {

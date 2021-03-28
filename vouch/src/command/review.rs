@@ -257,26 +257,17 @@ fn ensure_package_setup(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     tx: &common::StoreTransaction,
 ) -> Result<(package::Package, std::path::PathBuf)> {
-    let (extension, remote_package_metadata) =
+    let (_extension, remote_package_metadata) =
         extension::get_remote_package_metadata(&package_name, &package_version, &extensions)?
             .ok_or(format_err!(
                 "Extensions have failed to find package in remote package registries."
             ))?;
 
-    let registry_host_name =
-        &remote_package_metadata
-            .registry_host_name
-            .clone()
-            .ok_or(format_err!(
-            "Extension {name} has provided insufficient data: registry host name not specified.",
-            name = extension.name()
-        ))?;
-
     let package = package::index::get(
         &package::index::Fields {
             package_name: Some(&package_name),
             package_version: Some(&package_version),
-            registry_host_name: Some(registry_host_name),
+            registry_host_name: Some(&remote_package_metadata.registry_host_name),
             ..Default::default()
         },
         &tx,
@@ -295,29 +286,12 @@ fn ensure_package_setup(
             (package, workspace_directory)
         }
         None => {
-            let registry_human_url =
-                url::Url::parse(&remote_package_metadata.registry_human_url.ok_or(
-                    format_err!(
-                        "Extension {name} has provided insufficient data: \
-                    missing package human friendly URL",
-                        name = extension.name()
-                    ),
-                )?)?;
-            let archive_url = url::Url::parse(
-                remote_package_metadata
-                    .archive_url
-                    .clone()
-                    .ok_or(format_err!(
-                        "Extension {name} has provided insufficient data: \
-                    archive URL not provided",
-                        name = extension.name()
-                    ))?
-                    .as_str(),
-            )?;
+            let registry_human_url = url::Url::parse(&remote_package_metadata.registry_human_url)?;
+            let archive_url = url::Url::parse(&remote_package_metadata.archive_url)?;
             let (workspace_directory, archive_hash) = review::workspace::ensure(
                 &package_name,
                 &package_version,
-                &registry_host_name,
+                &remote_package_metadata.registry_host_name,
                 &archive_url,
             )?;
             let archive_hash = archive_hash.ok_or(format_err!(
@@ -331,7 +305,7 @@ fn ensure_package_setup(
                 &registry_human_url,
                 &archive_url,
                 &archive_hash,
-                &registry_host_name,
+                &remote_package_metadata.registry_host_name,
                 &tx,
             )?;
             (package, workspace_directory)
