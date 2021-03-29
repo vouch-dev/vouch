@@ -22,7 +22,7 @@ pub struct Arguments {
     pub package_name: Option<String>,
 
     /// Package version.
-    #[structopt(name = "package-version", requires("name"))]
+    #[structopt(name = "package-version", requires("package-name"))]
     pub package_version: Option<String>,
 
     /// Specify an extension for handling the package or dependancies.
@@ -32,6 +32,8 @@ pub struct Arguments {
 }
 
 pub fn run_command(args: &Arguments) -> Result<()> {
+    // TODO: Use new review comments rather than user set ratings.
+
     let mut config = common::config::Config::load()?;
     extension::update_config(&mut config)?;
     let config = config;
