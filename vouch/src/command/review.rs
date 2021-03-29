@@ -60,7 +60,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let active_review_file = review::active::ensure(&review, &reviews_directory)?;
 
     review::tool::run(&workspace_directory, &config)?;
-    add_user_comments(&mut review, &active_review_file, &tx)?;
+    review.comments = get_comments(&active_review_file, &tx)?;
 
     if dialoguer::Confirm::new()
         .with_prompt("Is the review ready to share?")
@@ -78,12 +78,11 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     Ok(())
 }
 
-/// Parse user comments from active review file and add to review.
-fn add_user_comments(
-    review: &mut review::Review,
+/// Parse user comments from active review file and insert into index.
+fn get_comments(
     active_review_file: &std::path::PathBuf,
     tx: &StoreTransaction,
-) -> Result<()> {
+) -> Result<Vec<review::comment::Comment>> {
     let comments = review::active::parse(&active_review_file)?;
 
     let mut inserted_comments = Vec::<_>::new();
@@ -98,8 +97,7 @@ fn add_user_comments(
         inserted_comments.push(comment);
     }
 
-    review.comments = inserted_comments;
-    Ok(())
+    Ok(inserted_comments)
 }
 
 /// Review edit mode.
