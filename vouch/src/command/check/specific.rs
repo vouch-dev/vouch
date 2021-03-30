@@ -49,26 +49,37 @@ pub fn report(
             version = package_version
         );
 
-        for review in reviews_by_version.get(package_version).unwrap_or(&vec![]) {
-            let peer_url = if !review.peer.is_root() {
-                format!("({})", review.peer.git_url)
-            } else {
-                "".to_string()
-            };
-            println!(
-                "\
+        let mut reviews = match reviews_by_version.get(package_version) {
+            Some(reviews) => reviews.clone(),
+            None => Vec::<_>::new(),
+        };
+        reviews.sort();
+
+        for review in reviews {
+            let report = get_review_report(&review)?;
+            println!("{}", report);
+        }
+    }
+    Ok(())
+}
+
+fn get_review_report(review: &review::Review) -> Result<String> {
+    let peer_url = if !review.peer.is_root() {
+        format!("({})", review.peer.git_url)
+    } else {
+        "".to_string()
+    };
+    Ok(format!(
+        "\
                 \t\tPeer:              {peer_alias} {peer_url}\n\
                 \t\tPackage security:  {package_security}\n\
                 \t\tReview confidence: {review_confidence}\n\
             \n\n",
-                peer_alias = review.peer.alias,
-                peer_url = peer_url,
-                package_security = review.package_security,
-                review_confidence = review.review_confidence,
-            );
-        }
-    }
-    Ok(())
+        peer_alias = review.peer.alias,
+        peer_url = peer_url,
+        package_security = review.package_security,
+        review_confidence = review.review_confidence,
+    ))
 }
 
 fn get_package_reviews(
@@ -80,7 +91,7 @@ fn get_package_reviews(
 ) -> Result<std::collections::BTreeSet<review::Review>> {
     let registries = extension::get_enabled_registry_host_names(&extension_names, &config)?;
 
-    let mut reviews = review::index::get(
+    let reviews = review::index::get(
         &review::index::Fields {
             package_name: Some(package_name),
             package_version: package_version.as_deref(),
@@ -88,12 +99,6 @@ fn get_package_reviews(
         },
         &tx,
     )?;
-    reviews.sort_by_cached_key(|review| {
-        (
-            review.package_security.clone(),
-            review.review_confidence.clone(),
-        )
-    });
     let reviews = reviews
         .into_iter()
         .filter(|r| registries.contains(&r.package.registry.host_name))

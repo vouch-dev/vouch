@@ -5,9 +5,7 @@ use anyhow::{format_err, Result};
 use std::collections::HashSet;
 use std::hash::Hash;
 
-#[derive(
-    Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Package {
     #[serde(skip)]
     pub id: common::index::ID,
@@ -20,6 +18,31 @@ pub struct Package {
 
     pub archive_url: url::Url,
     pub archive_hash: String,
+}
+
+impl Ord for Package {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (
+            &self.name,
+            &self.version,
+            &self.registry,
+            &self.archive_hash,
+            &self.id,
+        )
+            .cmp(&(
+                &other.name,
+                &other.version,
+                &other.registry,
+                &other.archive_hash,
+                &other.id,
+            ))
+    }
+}
+
+impl PartialOrd for Package {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl common::index::Identify for Package {

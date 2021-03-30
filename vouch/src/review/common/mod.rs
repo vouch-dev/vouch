@@ -16,25 +16,38 @@ mod review_confidence;
 pub use package_security::PackageSecurity;
 pub use review_confidence::ReviewConfidence;
 
-#[derive(
-    Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
-)]
+// Ord, PartialOrd,
+#[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Review {
     #[serde(skip)]
     pub id: crate::common::index::ID,
+    #[serde(skip)]
+    pub peer: crate::peer::Peer,
+    pub package: crate::package::Package,
+    pub comments: Vec<crate::review::comment::Comment>,
 
     #[serde(rename = "package-security")]
     pub package_security: PackageSecurity,
 
     #[serde(rename = "review-confidence")]
     pub review_confidence: ReviewConfidence,
+}
 
-    #[serde(skip)]
-    pub peer: crate::peer::Peer,
+impl Ord for Review {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (&self.peer, &self.package, &self.comments, &self.id).cmp(&(
+            &other.peer,
+            &other.package,
+            &other.comments,
+            &other.id,
+        ))
+    }
+}
 
-    pub package: crate::package::Package,
-
-    pub comments: Vec<crate::review::comment::Comment>,
+impl PartialOrd for Review {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl crate::common::HashSansId for Review {

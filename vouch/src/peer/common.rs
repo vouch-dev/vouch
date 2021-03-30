@@ -23,7 +23,7 @@ impl std::hash::Hash for SubPeerIds {
     }
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)] //, Ord, PartialOrd)]
 pub struct Peer {
     pub id: crate::common::index::ID,
     pub alias: String,
@@ -33,6 +33,33 @@ pub struct Peer {
     pub parent_id: Option<crate::common::index::ID>,
 
     pub child_peer_ids: Option<SubPeerIds>,
+}
+
+impl Peer {
+    pub fn is_root(&self) -> bool {
+        self.alias.as_str() == ROOT_ALIAS && self.parent_id.is_none()
+    }
+}
+
+impl Ord for Peer {
+    /// Order on root status then git_url (which is unique).
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.is_root() && !other.is_root() {
+            std::cmp::Ordering::Less
+        } else if self.is_root() && other.is_root() {
+            std::cmp::Ordering::Equal
+        } else if !self.is_root() && other.is_root() {
+            std::cmp::Ordering::Greater
+        } else {
+            self.git_url.cmp(&other.git_url)
+        }
+    }
+}
+
+impl PartialOrd for Peer {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl crate::common::HashSansId for Peer {
@@ -66,8 +93,48 @@ impl Default for Peer {
     }
 }
 
-impl Peer {
-    pub fn is_root(&self) -> bool {
-        self.alias.as_str() == ROOT_ALIAS
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Result;
+
+    #[test]
+    fn test_root_peer_greater_ordering() -> Result<()> {
+        let root_peer = Peer {
+            id: 0,
+            alias: ROOT_ALIAS.to_string(),
+            git_url: crate::common::GitUrl::try_from("http://localhost")?,
+            parent_id: None,
+            child_peer_ids: None,
+        };
+        let other_peer = Peer {
+            id: 0,
+            alias: "aA-other_peer".to_string(),
+            git_url: crate::common::GitUrl::try_from("http://aA-localhost")?,
+            parent_id: Some(42),
+            child_peer_ids: None,
+        };
+        assert!(root_peer < other_peer);
+        Ok(())
+    }
+
+    #[test]
+    fn test_nonroot_peer_git_url_ordering() -> Result<()> {
+        let peer_1 = Peer {
+            id: 0,
+            alias: "peer".to_string(),
+            git_url: crate::common::GitUrl::try_from("http://localhost")?,
+            parent_id: Some(42),
+            child_peer_ids: None,
+        };
+        let peer_2 = Peer {
+            id: 0,
+            alias: "peer".to_string(),
+            git_url: crate::common::GitUrl::try_from("http://aA-localhost")?,
+            parent_id: Some(42),
+            child_peer_ids: None,
+        };
+        assert!(peer_1 > peer_2);
+        Ok(())
     }
 }

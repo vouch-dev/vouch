@@ -21,9 +21,9 @@ pub struct Selection {
 )]
 #[serde(rename_all = "lowercase")]
 pub enum Summary {
-    Pass,
-    Warn,
     Fail,
+    Warn,
+    Pass,
 }
 
 impl std::str::FromStr for Summary {
@@ -34,7 +34,8 @@ impl std::str::FromStr for Summary {
             "warn" => Ok(Summary::Warn),
             "fail" => Ok(Summary::Fail),
             _ => Err(anyhow::format_err!(
-                "Failed to parse comment summary type from string."
+                "Failed to parse comment summary type from string: {}",
+                input
             )),
         }
     }
@@ -46,9 +47,7 @@ impl std::fmt::Display for Summary {
     }
 }
 
-#[derive(
-    Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Comment {
     #[serde(skip)]
     pub id: crate::common::index::ID,
@@ -58,6 +57,31 @@ pub struct Comment {
     #[serde(rename = "description")]
     pub message: String,
     pub selection: Option<Selection>,
+}
+
+impl Ord for Comment {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (
+            &self.summary,
+            &self.path,
+            &self.message,
+            &self.selection,
+            &self.id,
+        )
+            .cmp(&(
+                &other.summary,
+                &other.path,
+                &other.message,
+                &other.selection,
+                &other.id,
+            ))
+    }
+}
+
+impl PartialOrd for Comment {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl crate::common::HashSansId for Comment {
