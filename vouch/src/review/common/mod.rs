@@ -24,7 +24,7 @@ pub struct Review {
     #[serde(skip)]
     pub peer: crate::peer::Peer,
     pub package: crate::package::Package,
-    pub comments: Vec<crate::review::comment::Comment>,
+    pub comments: std::collections::BTreeSet<crate::review::comment::Comment>,
 
     #[serde(rename = "package-security")]
     pub package_security: PackageSecurity,

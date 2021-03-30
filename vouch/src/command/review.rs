@@ -82,10 +82,10 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 fn get_comments(
     active_review_file: &std::path::PathBuf,
     tx: &StoreTransaction,
-) -> Result<Vec<review::comment::Comment>> {
+) -> Result<std::collections::BTreeSet<review::comment::Comment>> {
     let comments = review::active::parse(&active_review_file)?;
 
-    let mut inserted_comments = Vec::<_>::new();
+    let mut inserted_comments = std::collections::BTreeSet::<_>::new();
     for comment in comments {
         let comment = review::comment::index::insert(
             &comment.path,
@@ -94,7 +94,7 @@ fn get_comments(
             &comment.selection,
             &tx,
         )?;
-        inserted_comments.push(comment);
+        inserted_comments.insert(comment);
     }
 
     Ok(inserted_comments)
@@ -317,7 +317,7 @@ fn get_insert_unset_review(
     let unset_review = review::index::insert(
         &review::PackageSecurity::Unset,
         &review::ReviewConfidence::Unset,
-        &Vec::<review::comment::Comment>::new(),
+        &std::collections::BTreeSet::<review::comment::Comment>::new(),
         &root_peer,
         &package,
         &tx,

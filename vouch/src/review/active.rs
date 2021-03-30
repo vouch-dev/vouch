@@ -8,7 +8,7 @@ struct ActiveReview {
     pub description: String,
     #[serde(rename = "isPrimary")]
     pub is_primary: Option<bool>,
-    pub comments: Vec<review::comment::Comment>,
+    pub comments: std::collections::BTreeSet<review::comment::Comment>,
 }
 
 /// Ensure active review file is in place.
@@ -44,7 +44,9 @@ pub fn ensure(
     Ok(review_file_path)
 }
 
-pub fn parse(path: &std::path::PathBuf) -> Result<Vec<review::comment::Comment>> {
+pub fn parse(
+    path: &std::path::PathBuf,
+) -> Result<std::collections::BTreeSet<review::comment::Comment>> {
     let file = std::fs::File::open(path)?;
     let reader = std::io::BufReader::new(file);
 

@@ -48,7 +48,7 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
 pub fn insert(
     package_security: &common::PackageSecurity,
     review_confidence: &common::ReviewConfidence,
-    comments: &Vec<comment::Comment>,
+    comments: &std::collections::BTreeSet<comment::Comment>,
     peer: &crate::peer::Peer,
     package: &crate::package::Package,
     tx: &StoreTransaction,
@@ -252,7 +252,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
                 .into_iter()
                 .collect()
             }
-            None => Vec::<comment::Comment>::new(),
+            None => std::collections::BTreeSet::<comment::Comment>::new(),
         };
 
         let review = common::Review {
@@ -388,7 +388,7 @@ mod tests {
         let review_1 = insert(
             &common::PackageSecurity::Safe,
             &common::ReviewConfidence::High,
-            &Vec::<comment::Comment>::new(),
+            &std::collections::BTreeSet::<comment::Comment>::new(),
             &root_peer,
             &package_1,
             &tx,
@@ -396,7 +396,7 @@ mod tests {
         let review_2 = insert(
             &common::PackageSecurity::Safe,
             &common::ReviewConfidence::High,
-            &Vec::<comment::Comment>::new(),
+            &std::collections::BTreeSet::<comment::Comment>::new(),
             &root_peer,
             &package_2,
             &tx,
