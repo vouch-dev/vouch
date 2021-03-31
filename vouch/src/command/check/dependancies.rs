@@ -44,7 +44,8 @@ pub fn report(
             count_dependancies = dependancy_reports.len(),
         );
         if dependancy_reports.is_empty() {
-            log::debug!("Extension did not identify any dependancies in the current working directory or parent directories.");
+            log::debug!("Extension {} did not identify any dependancies in the \
+            current working directory or parent directories.", extension.name());
             continue;
         }
 
