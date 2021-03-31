@@ -24,7 +24,7 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
 /// Insert comment into index.
 pub fn insert(
     path: &std::path::PathBuf,
-    summary: &common::Summary,
+    summary: &crate::review::common::Summary,
     message: &str,
     selection: &Option<common::Selection>,
     tx: &StoreTransaction,

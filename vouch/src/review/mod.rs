@@ -9,7 +9,7 @@ pub mod index;
 pub mod tool;
 pub mod workspace;
 
-pub use crate::review::common::{PackageSecurity, Review, ReviewConfidence};
+pub use crate::review::common::{PackageSecurity, Review, ReviewConfidence, Summary};
 
 pub struct ReviewAnalysis {
     pub count_fail_comments: i32,
@@ -18,14 +18,14 @@ pub struct ReviewAnalysis {
 
 pub fn analyse(review: &Review) -> Result<ReviewAnalysis> {
     let count_warn_comments = review.comments.iter().fold(0, |sum, comment| {
-        if comment.summary == comment::Summary::Warn {
+        if comment.summary == Summary::Warn {
             sum + 1
         } else {
             sum
         }
     });
     let count_fail_comments = review.comments.iter().fold(0, |sum, comment| {
-        if comment.summary == comment::Summary::Fail {
+        if comment.summary == Summary::Fail {
             sum + 1
         } else {
             sum

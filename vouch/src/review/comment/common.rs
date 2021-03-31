@@ -1,3 +1,4 @@
+use crate::review::common::Summary;
 use std::hash::Hash;
 
 #[derive(
@@ -14,37 +15,6 @@ pub struct Position {
 pub struct Selection {
     pub start: Position,
     pub end: Position,
-}
-
-#[derive(
-    Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
-)]
-#[serde(rename_all = "lowercase")]
-pub enum Summary {
-    Fail,
-    Warn,
-    Pass,
-}
-
-impl std::str::FromStr for Summary {
-    type Err = anyhow::Error;
-    fn from_str(input: &str) -> Result<Summary, Self::Err> {
-        match input {
-            "pass" => Ok(Summary::Pass),
-            "warn" => Ok(Summary::Warn),
-            "fail" => Ok(Summary::Fail),
-            _ => Err(anyhow::format_err!(
-                "Failed to parse summary type from string: {}",
-                input
-            )),
-        }
-    }
-}
-
-impl std::fmt::Display for Summary {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", format!("{:?}", self).to_lowercase())
-    }
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]

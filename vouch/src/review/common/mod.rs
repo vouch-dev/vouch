@@ -12,9 +12,11 @@ use std::hash::Hash;
 mod package_security;
 pub mod rating;
 mod review_confidence;
+pub mod summary;
 
 pub use package_security::PackageSecurity;
 pub use review_confidence::ReviewConfidence;
+pub use summary::Summary;
 
 // Ord, PartialOrd,
 #[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
