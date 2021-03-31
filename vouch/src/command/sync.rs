@@ -27,7 +27,7 @@ pub fn run_command(_args: &Arguments) -> Result<()> {
         },
         &tx,
     )?;
-    let peers_found = !root_children.is_empty();
+    let found_peers = !root_children.is_empty();
 
     let mut updated_peers = Vec::new();
     for peer in root_children {
@@ -37,14 +37,14 @@ pub fn run_command(_args: &Arguments) -> Result<()> {
             continue;
         }
 
-        remove_peer_index_data(&peer, &mut tx)?;
+        remove_index_peer_subtree(&peer, &mut tx)?;
         peer::fs::merge_update(&peer, &mut tx)?;
         let peer = merge_updated_peer_subtree(&peer, &mut tx)?;
         updated_peers.push(peer);
     }
 
     if updated_peers.is_empty() {
-        if peers_found {
+        if found_peers {
             println!("All peers up-to-date.");
         }
     } else {
@@ -76,14 +76,14 @@ pub fn run_command(_args: &Arguments) -> Result<()> {
     Ok(())
 }
 
-fn remove_peer_index_data(
+fn remove_index_peer_subtree(
     target_peer: &peer::Peer,
     tx: &mut common::StoreTransaction,
 ) -> Result<()> {
     // Remove subtree in sets of breadth first layers.
     let peers_breadth_layers = peer::index::get_breadth_first_child_peers(&target_peer, &tx)?;
 
-    // Processing order: from leaves to root.
+    // Processing order: from leaves to starting peer (inclusive).
     for peers in peers_breadth_layers.iter().rev() {
         for peer in peers {
             review::index::remove(
