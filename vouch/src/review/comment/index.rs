@@ -180,30 +180,6 @@ fn get_selection_field(row: &rusqlite::Row<'_>) -> Result<Option<common::Selecti
     }))
 }
 
-/// Merge comments from incoming index into local index. Returns the newly merged comments.
-pub fn merge(
-    incoming_tx: &StoreTransaction,
-    tx: &StoreTransaction,
-) -> Result<std::collections::HashSet<common::Comment>> {
-    let existing_comments = get(&Fields::default(), &tx)?;
-    let incoming_comments = get(&Fields::default(), &incoming_tx)?;
-
-    let mut new_comments = std::collections::HashSet::new();
-    for comment in
-        crate::common::index::get_difference_sans_id(&incoming_comments, &existing_comments)?
-    {
-        let comment = insert(
-            &comment.path,
-            &comment.summary,
-            &comment.message,
-            &comment.selection,
-            &tx,
-        )?;
-        new_comments.insert(comment);
-    }
-    Ok(new_comments)
-}
-
 pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
     let id =
         crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());

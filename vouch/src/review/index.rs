@@ -279,8 +279,6 @@ pub fn merge(
     incoming_tx: &StoreTransaction,
     tx: &StoreTransaction,
 ) -> Result<HashSet<common::Review>> {
-    comment::index::merge(&incoming_tx, &tx)?;
-
     let incoming_reviews = get(&Fields::default(), &incoming_tx)?;
 
     let mut new_reviews = HashSet::new();
@@ -315,9 +313,19 @@ pub fn merge(
             review
         ))?;
 
-        // TODO: Get inserted comments.
+        let mut new_comments = std::collections::BTreeSet::<comment::Comment>::new();
+        for comment in review.comments {
+            let comment = comment::index::insert(
+                &comment.path,
+                &comment.summary,
+                &comment.message,
+                &comment.selection,
+                &tx,
+            )?;
+            new_comments.insert(comment);
+        }
 
-        let review = insert(&review.comments, &peer, &package, &tx)?;
+        let review = insert(&new_comments, &peer, &package, &tx)?;
         new_reviews.insert(review);
     }
     Ok(new_reviews)
