@@ -8,7 +8,7 @@ pub struct DependancyReport {
     pub summary: review::Summary,
     pub name: String,
     pub version: Option<String>,
-    pub review_count: Option<u32>,
+    pub review_count: Option<usize>,
     pub note: Option<String>,
 }
 
@@ -65,34 +65,32 @@ pub fn get_dependancy_report(
         summary: status,
         name: dependancy.name.clone(),
         version: Some(package_version.clone()),
-        review_count: Some(reviews.len() as u32),
+        review_count: Some(reviews.len()),
         note: Some(note),
     })
 }
 
 #[derive(Debug, Default, Clone)]
 struct DependancyStats {
-    pub count_very_dangerous: u32,
-    pub count_dangerous: u32,
-    pub total_review_count: u32,
+    pub total_review_count: usize,
+    pub count_fail_comments: i32,
+    pub count_warn_comments: i32,
 }
 
 fn get_dependancy_stats(reviews: &Vec<review::Review>) -> Result<DependancyStats> {
     let mut stats = DependancyStats::default();
-    stats.total_review_count = reviews.len() as u32;
+    stats.total_review_count = reviews.len();
 
     for review in reviews {
-        if review.package_security == review::PackageSecurity::VeryDangerous {
-            stats.count_very_dangerous += 1;
-        } else if review.package_security == review::PackageSecurity::Dangerous {
-            stats.count_dangerous += 1;
-        }
+        let review_analysis = review::analyse(&review)?;
+        stats.count_fail_comments += review_analysis.count_fail_comments;
+        stats.count_warn_comments += review_analysis.count_warn_comments;
     }
     Ok(stats)
 }
 
 fn get_dependancy_status(stats: &DependancyStats) -> Result<review::Summary> {
-    if stats.count_very_dangerous > 0 || stats.count_dangerous > 0 {
+    if stats.count_fail_comments > 0 {
         return Ok(review::Summary::Fail);
     }
     if stats.total_review_count == 0 {
@@ -102,29 +100,14 @@ fn get_dependancy_status(stats: &DependancyStats) -> Result<review::Summary> {
 }
 
 fn get_dependancy_note(stats: &DependancyStats) -> Result<String> {
-    let mut note = String::new();
-    if stats.count_very_dangerous > 0 {
-        note.push_str(
-            format!(
-                "very dangerous ({review_count})",
-                review_count = stats.count_very_dangerous
-            )
-            .as_str(),
-        );
+    let mut note_parts = Vec::<_>::new();
+    if stats.count_fail_comments > 0 {
+        note_parts.push(format!("fail comments ({})", stats.count_fail_comments));
     }
 
-    if stats.count_dangerous > 0 {
-        if !note.is_empty() {
-            note.push_str("; ");
-        }
-        note.push_str(
-            format!(
-                "dangerous ({review_count})",
-                review_count = stats.count_dangerous
-            )
-            .as_str(),
-        );
+    if stats.count_warn_comments > 0 {
+        note_parts.push(format!("warn comments ({})", stats.count_warn_comments));
     }
 
-    Ok(note)
+    Ok(note_parts.join("; "))
 }
