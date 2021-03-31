@@ -35,7 +35,10 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
 
             UNIQUE(peer_id, package_id)
             FOREIGN KEY(peer_id) REFERENCES peer(id)
-            FOREIGN KEY(package_id) REFERENCES package(id)
+            CONSTRAINT fk_package
+                FOREIGN KEY (package_id)
+                REFERENCES package(id)
+                ON DELETE CASCADE
         )",
         rusqlite::NO_PARAMS,
     )?;
@@ -242,7 +245,8 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
 }
 
 pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
-    let id = crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
+    let id =
+        crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
     let package_name = crate::common::index::get_like_clause_param(fields.package_name);
     let package_version = crate::common::index::get_like_clause_param(fields.package_version);
     let registry_host_name = crate::common::index::get_like_clause_param(fields.registry_host_name);
@@ -251,8 +255,17 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
         fields.peer.map(|peer| peer.id.to_string()).as_deref(),
     );
 
-    // Remove review comments.
     for review in get(&fields, &tx)? {
+        // Remove package.
+        package::index::remove(
+            &package::index::Fields {
+                id: Some(review.package.id),
+                ..Default::default()
+            },
+            &tx,
+        )?;
+
+        // Remove comments.
         for comment in review.comments {
             comment::index::remove(
                 &comment::index::Fields {
@@ -370,71 +383,119 @@ mod tests {
         )?)
     }
 
-    #[test]
-    fn test_insert_get_new_reviews() -> Result<()> {
-        let mut store = crate::store::Store::from_tmp()?;
-        let tx = store.get_transaction()?;
+    mod insert {
+        use super::*;
 
-        let package_1 = get_package("package_1", &tx)?;
-        let package_2 = get_package("package_2", &tx)?;
+        #[test]
+        fn test_insert_get_new_reviews() -> Result<()> {
+            let mut store = crate::store::Store::from_tmp()?;
+            let tx = store.get_transaction()?;
 
-        let root_peer = peer::index::get_root(&tx)?.unwrap();
+            let package_1 = get_package("package_1", &tx)?;
+            let package_2 = get_package("package_2", &tx)?;
 
-        let review_1 = insert(
-            &std::collections::BTreeSet::<comment::Comment>::new(),
-            &root_peer,
-            &package_1,
-            &tx,
-        )?;
-        let review_2 = insert(
-            &std::collections::BTreeSet::<comment::Comment>::new(),
-            &root_peer,
-            &package_2,
-            &tx,
-        )?;
+            let root_peer = peer::index::get_root(&tx)?.unwrap();
 
-        let expected = maplit::btreeset! {review_1, review_2};
-        let result: std::collections::BTreeSet<common::Review> =
-            get(&Fields::default(), &tx)?.into_iter().collect();
-        assert_eq!(result, expected);
-        Ok(())
+            let review_1 = insert(
+                &std::collections::BTreeSet::<comment::Comment>::new(),
+                &root_peer,
+                &package_1,
+                &tx,
+            )?;
+            let review_2 = insert(
+                &std::collections::BTreeSet::<comment::Comment>::new(),
+                &root_peer,
+                &package_2,
+                &tx,
+            )?;
+
+            let expected = maplit::btreeset! {review_1, review_2};
+            let result: std::collections::BTreeSet<common::Review> =
+                get(&Fields::default(), &tx)?.into_iter().collect();
+            assert_eq!(result, expected);
+            Ok(())
+        }
     }
 
-    #[test]
-    fn test_remove_review() -> Result<()> {
-        let mut store = crate::store::Store::from_tmp()?;
-        let tx = store.get_transaction()?;
+    mod remove {
+        use super::*;
 
-        let package_1 = get_package("package_1", &tx)?;
-        let package_2 = get_package("package_2", &tx)?;
+        #[test]
+        fn test_single_review() -> Result<()> {
+            let mut store = crate::store::Store::from_tmp()?;
+            let tx = store.get_transaction()?;
 
-        let root_peer = peer::index::get_root(&tx)?.unwrap();
+            let package_1 = get_package("package_1", &tx)?;
+            let package_2 = get_package("package_2", &tx)?;
 
-        let review_1 = insert(
-            &std::collections::BTreeSet::<comment::Comment>::new(),
-            &root_peer,
-            &package_1,
-            &tx,
-        )?;
-        let review_2 = insert(
-            &std::collections::BTreeSet::<comment::Comment>::new(),
-            &root_peer,
-            &package_2,
-            &tx,
-        )?;
+            let root_peer = peer::index::get_root(&tx)?.unwrap();
 
-        remove(
-            &Fields {
-                id: Some(review_1.id),
-                ..Default::default()
-            },
-            &tx,
-        )?;
+            let review_1 = insert(
+                &std::collections::BTreeSet::<comment::Comment>::new(),
+                &root_peer,
+                &package_1,
+                &tx,
+            )?;
+            let review_2 = insert(
+                &std::collections::BTreeSet::<comment::Comment>::new(),
+                &root_peer,
+                &package_2,
+                &tx,
+            )?;
 
-        let expected = maplit::btreeset! {review_2};
-        let result: std::collections::BTreeSet<common::Review> =
-            get(&Fields::default(), &tx)?.into_iter().collect();
-        assert_eq!(result, expected);
-        Ok(())
+            remove(
+                &Fields {
+                    id: Some(review_1.id),
+                    ..Default::default()
+                },
+                &tx,
+            )?;
+
+            let expected = maplit::btreeset! {review_2};
+            let result: std::collections::BTreeSet<common::Review> =
+                get(&Fields::default(), &tx)?.into_iter().collect();
+            assert_eq!(result, expected);
+            Ok(())
+        }
+
+        #[test]
+        fn test_corresponding_package_removed() -> Result<()> {
+            let mut store = crate::store::Store::from_tmp()?;
+            let tx = store.get_transaction()?;
+
+            let package_1 = get_package("package_1", &tx)?;
+            let package_2 = get_package("package_2", &tx)?;
+
+            let root_peer = peer::index::get_root(&tx)?.unwrap();
+
+            let review_1 = insert(
+                &std::collections::BTreeSet::<comment::Comment>::new(),
+                &root_peer,
+                &package_1,
+                &tx,
+            )?;
+            let _review_2 = insert(
+                &std::collections::BTreeSet::<comment::Comment>::new(),
+                &root_peer,
+                &package_2,
+                &tx,
+            )?;
+
+            remove(
+                &Fields {
+                    id: Some(review_1.id),
+                    ..Default::default()
+                },
+                &tx,
+            )?;
+
+            let expected = maplit::hashset! {package_2};
+            let result: std::collections::HashSet<_> =
+                package::index::get(&package::index::Fields::default(), &tx)?
+                    .into_iter()
+                    .collect();
+            assert_eq!(result, expected);
+            Ok(())
+        }
     }
 }

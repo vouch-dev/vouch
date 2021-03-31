@@ -229,3 +229,17 @@ pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<Ha
     }
     Ok(new_packages)
 }
+
+pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
+    let id = common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
+    tx.index_tx().execute_named(
+        r"
+        DELETE
+        FROM package
+        WHERE
+            id LIKE :id ESCAPE '\'
+    ",
+        &[(":id", &id)],
+    )?;
+    Ok(())
+}
