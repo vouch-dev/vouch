@@ -98,7 +98,7 @@ fn setup_data_directory_contents(paths: &common::fs::DataPaths) -> Result<()> {
     Ok(())
 }
 
-/// Setup config file.
+/// Setup config directory.
 ///
 /// If config file exists and force is false, file will not be modified.
 fn setup_config(
@@ -107,6 +107,8 @@ fn setup_config(
     force: bool,
 ) -> Result<()> {
     std::fs::create_dir_all(&paths.root_directory)?;
+    std::fs::create_dir_all(&paths.extensions_directory)?;
+
     if force || !paths.config_file.is_file() {
         log::debug!("Generating config file: {}", paths.config_file.display());
         let mut config = crate::common::config::Config::default();
