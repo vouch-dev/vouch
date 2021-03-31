@@ -55,10 +55,12 @@ pub fn report(
         };
         reviews.sort();
 
+        let mut reports = Vec::<_>::new();
         for review in reviews {
             let report = get_review_report(&review)?;
-            println!("{}", report);
+            reports.push(report);
         }
+        println!("{}", reports.join("\n\n"));
     }
     Ok(())
 }
@@ -69,16 +71,15 @@ fn get_review_report(review: &review::Review) -> Result<String> {
     } else {
         "".to_string()
     };
+
     Ok(format!(
         "\
-                \t\tPeer:              {peer_alias} {peer_url}\n\
-                \t\tPackage security:  {package_security}\n\
-                \t\tReview confidence: {review_confidence}\n\
-            \n\n",
+Peer: {peer_alias} {peer_url}\n\
+{comments_report}
+\n\n",
         peer_alias = review.peer.alias,
         peer_url = peer_url,
-        package_security = review.package_security,
-        review_confidence = review.review_confidence,
+        comments_report = serde_yaml::to_string(&review.comments)?,
     ))
 }
 

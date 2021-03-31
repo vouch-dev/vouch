@@ -51,9 +51,9 @@ impl std::fmt::Display for Summary {
 pub struct Comment {
     #[serde(skip)]
     pub id: crate::common::index::ID,
+    pub summary: Summary,
     #[serde(rename = "file")]
     pub path: std::path::PathBuf,
-    pub summary: Summary,
     #[serde(rename = "description")]
     pub message: String,
     pub selection: Option<Selection>,
