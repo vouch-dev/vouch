@@ -10,7 +10,6 @@ use std::hash::Hash;
 pub struct Registry {
     #[serde(skip)]
     pub id: common::index::ID,
-
     pub host_name: String,
 }
 
