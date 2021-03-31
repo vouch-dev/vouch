@@ -1,3 +1,4 @@
+use crate::common::config::common;
 use anyhow::{format_err, Result};
 
 #[derive(
@@ -29,16 +30,7 @@ pub fn set(extensions: &mut Extensions, name: &str, value: &str) -> Result<()> {
         .ok_or(format_err!(name_error_message.clone()))?
         .as_str();
 
-    let value = match value {
-        "true" => true,
-        "false" => false,
-        _ => {
-            return Err(format_err!(
-                "Expected value: `true` or `false`. Found: {}",
-                value
-            ));
-        }
-    };
+    let value = common::bool_from_string(value)?;
 
     if !extensions.enabled.contains_key(extension_name) {
         return Err(format_err!(name_error_message.clone()));

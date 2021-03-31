@@ -1,3 +1,4 @@
+use crate::common::config::common;
 use anyhow::{format_err, Context, Result};
 use std::convert::TryFrom;
 
@@ -44,17 +45,7 @@ pub fn set(core: &mut Core, name: &str, value: &str) -> Result<()> {
             Ok(())
         }
         "notify-vouch-public-sync" => {
-            let value = match value {
-                "true" => true,
-                "false" => false,
-                _ => {
-                    return Err(format_err!(
-                        "Expected value: `true` or `false`. Found: {}",
-                        value
-                    ));
-                }
-            };
-            core.notify_vouch_public_sync = value;
+            core.notify_vouch_public_sync = common::bool_from_string(&value)?;
             Ok(())
         }
         _ => Err(format_err!(name_error_message.clone())),

@@ -1,5 +1,6 @@
 use anyhow::{format_err, Context, Result};
 
+mod common;
 mod core;
 mod extensions;
 mod review_tool;
