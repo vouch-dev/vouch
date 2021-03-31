@@ -62,6 +62,11 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     review::tool::run(&workspace_directory, &config)?;
     review.comments = get_comments(&active_review_file, &tx)?;
 
+    if review.comments.is_empty() {
+        println!("No review comments found. Review saved as ongoing.");
+        return Ok(());
+    }
+
     if dialoguer::Confirm::new()
         .with_prompt("Is the review ready to share?")
         .interact()?
