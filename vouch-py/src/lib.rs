@@ -59,7 +59,6 @@ impl vouch_lib::extension::Extension for PyExtension {
                     DependancyFileType::PipfileLock => {
                         pipfile::get_dependancies(&dependancy_file.path)?
                     }
-                    _ => HashSet::new(),
                 };
             for dependancy in dependancies {
                 all_dependancies.insert(dependancy);
@@ -154,8 +153,6 @@ fn get_archive_url(
 /// Package dependancy file types.
 #[derive(Debug, Copy, Clone, strum_macros::EnumIter)]
 enum DependancyFileType {
-    SetupPy,
-    RequirementsTxt,
     PipfileLock,
 }
 
@@ -163,8 +160,6 @@ impl DependancyFileType {
     /// Return file name associated with dependancy type.
     pub fn file_name(&self) -> std::path::PathBuf {
         match self {
-            Self::SetupPy => std::path::PathBuf::from("setup.py"),
-            Self::RequirementsTxt => std::path::PathBuf::from("requirements.txt"),
             Self::PipfileLock => std::path::PathBuf::from("Pipfile.lock"),
         }
     }
