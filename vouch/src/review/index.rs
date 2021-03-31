@@ -249,6 +249,20 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
     let peer_id = crate::common::index::get_like_clause_param(
         fields.peer.map(|peer| peer.id.to_string()).as_deref(),
     );
+
+    // Remove review comments.
+    for review in get(&fields, &tx)? {
+        for comment in review.comments {
+            comment::index::remove(
+                &comment::index::Fields {
+                    id: Some(comment.id),
+                    ..Default::default()
+                },
+                &tx,
+            )?;
+        }
+    }
+
     tx.index_tx().execute_named(
         r"
         DELETE FROM review
