@@ -248,7 +248,7 @@ fn setup_new_review(
     let extensions = extension::get_enabled_extensions(&extension_names, &config)?;
     let (package, workspace_directory) =
         ensure_package_setup(&package_name, &package_version, &extensions, &tx)?;
-    let review = get_insert_unset_review(&package, &tx)?;
+    let review = get_insert_empty_review(&package, &tx)?;
     Ok((review, workspace_directory))
 }
 
@@ -313,15 +313,13 @@ fn ensure_package_setup(
     Ok(package)
 }
 
-fn get_insert_unset_review(
+fn get_insert_empty_review(
     package: &package::Package,
     tx: &common::StoreTransaction,
 ) -> Result<review::Review> {
     let root_peer =
         peer::index::get_root(&tx)?.ok_or(format_err!("Cant find root peer. Index corrupt."))?;
     let unset_review = review::index::insert(
-        &review::PackageSecurity::Unset,
-        &review::ReviewConfidence::Unset,
         &std::collections::BTreeSet::<review::comment::Comment>::new(),
         &root_peer,
         &package,

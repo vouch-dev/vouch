@@ -9,7 +9,7 @@ pub mod index;
 pub mod tool;
 pub mod workspace;
 
-pub use crate::review::common::{PackageSecurity, Review, ReviewConfidence, Summary};
+pub use crate::review::common::{Review, Summary};
 
 pub struct ReviewAnalysis {
     pub count_fail_comments: i32,

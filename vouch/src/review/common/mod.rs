@@ -9,13 +9,7 @@
 use serde;
 use std::hash::Hash;
 
-mod package_security;
-pub mod rating;
-mod review_confidence;
 pub mod summary;
-
-pub use package_security::PackageSecurity;
-pub use review_confidence::ReviewConfidence;
 pub use summary::Summary;
 
 // Ord, PartialOrd,
@@ -27,12 +21,6 @@ pub struct Review {
     pub peer: crate::peer::Peer,
     pub package: crate::package::Package,
     pub comments: std::collections::BTreeSet<crate::review::comment::Comment>,
-
-    #[serde(rename = "package-security")]
-    pub package_security: PackageSecurity,
-
-    #[serde(rename = "review-confidence")]
-    pub review_confidence: ReviewConfidence,
 }
 
 impl Ord for Review {
@@ -54,8 +42,6 @@ impl PartialOrd for Review {
 
 impl crate::common::HashSansId for Review {
     fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.package_security.hash(state);
-        self.review_confidence.hash(state);
         self.peer.hash(state);
         self.package.hash(state);
         self.comments.hash(state);

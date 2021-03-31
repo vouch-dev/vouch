@@ -1,7 +1,6 @@
 use anyhow::{format_err, Result};
 
 use std::collections::HashSet;
-use std::convert::TryFrom;
 
 use super::comment;
 use super::common;
@@ -32,8 +31,6 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
             id                    INTEGER NOT NULL PRIMARY KEY,
             peer_id               INTEGER NOT NULL,
             package_id            INTEGER NOT NULL,
-            package_security      INTEGER NOT NULL,
-            review_confidence     INTEGER NOT NULL,
             comment_ids           BLOB,
 
             UNIQUE(peer_id, package_id)
@@ -46,8 +43,6 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
 }
 
 pub fn insert(
-    package_security: &common::PackageSecurity,
-    review_confidence: &common::ReviewConfidence,
     comments: &std::collections::BTreeSet<comment::Comment>,
     peer: &crate::peer::Peer,
     package: &crate::package::Package,
@@ -65,30 +60,22 @@ pub fn insert(
             INSERT INTO review (
                 peer_id,
                 package_id,
-                package_security,
-                review_confidence,
                 comment_ids
             )
             VALUES (
                 :peer_id,
                 :package_id,
-                :package_security,
-                :review_confidence,
                 :comment_ids
             )
         ",
         &[
             (":peer_id", &peer.id),
             (":package_id", &package.id),
-            (":package_security", &package_security.to_rating().to_u8()),
-            (":review_confidence", &review_confidence.to_rating().to_u8()),
             (":comment_ids", &comment_ids),
         ],
     )?;
     Ok(common::Review {
         id: tx.index_tx().last_insert_rowid(),
-        package_security: package_security.clone(),
-        review_confidence: review_confidence.clone(),
         peer: peer.clone(),
         package: package.clone(),
         comments: comments.clone(),
@@ -104,8 +91,6 @@ pub fn update(review: &common::Review, tx: &StoreTransaction) -> Result<()> {
             SET
                 peer_id = :peer_id,
                 package_id = :package_id,
-                package_security = :package_security,
-                review_confidence = :review_confidence,
                 comment_ids = :comment_ids
             WHERE
                 id = :id
@@ -114,14 +99,6 @@ pub fn update(review: &common::Review, tx: &StoreTransaction) -> Result<()> {
             (":id", &review.id),
             (":peer_id", &review.peer.id),
             (":package_id", &review.package.id),
-            (
-                ":package_security",
-                &review.package_security.to_rating().to_u8(),
-            ),
-            (
-                ":review_confidence",
-                &review.review_confidence.to_rating().to_u8(),
-            ),
             (
                 ":comment_ids",
                 &bincode::serialize(&review.comments.iter().map(|c| c.id).collect::<Vec<_>>())?,
@@ -184,8 +161,6 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
         r"
         SELECT
             review.id,
-            review.package_security,
-            review.review_confidence,
             peer.id,
             package.id,
             review.comment_ids
@@ -216,7 +191,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
     while let Some(row) = rows.next()? {
         let peer = peer::index::get(
             &peer::index::Fields {
-                id: row.get(3)?,
+                id: row.get(1)?,
                 ..Default::default()
             },
             &tx,
@@ -227,7 +202,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
 
         let package = package::index::get(
             &package::index::Fields {
-                id: row.get(4)?,
+                id: row.get(2)?,
                 ..Default::default()
             },
             &tx,
@@ -237,7 +212,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
         .ok_or(format_err!("Failed to find review package in index."))?;
 
         let comment_ids: Option<Result<Vec<crate::common::index::ID>>> = row
-            .get::<_, Option<Vec<u8>>>(5)?
+            .get::<_, Option<Vec<u8>>>(3)?
             .map(|x| Ok(bincode::deserialize(&x)?));
         let comments = match comment_ids {
             Some(comment_ids) => {
@@ -257,8 +232,6 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
 
         let review = common::Review {
             id: row.get(0)?,
-            package_security: common::rating::Rating::try_from(&row.get::<_, u8>(1)?)?.into(),
-            review_confidence: common::rating::Rating::try_from(&row.get::<_, u8>(2)?)?.into(),
             peer,
             package,
             comments,
@@ -344,14 +317,7 @@ pub fn merge(
 
         // TODO: Get inserted comments.
 
-        let review = insert(
-            &review.package_security,
-            &review.review_confidence,
-            &review.comments,
-            &peer,
-            &package,
-            &tx,
-        )?;
+        let review = insert(&review.comments, &peer, &package, &tx)?;
         new_reviews.insert(review);
     }
     Ok(new_reviews)
@@ -386,16 +352,12 @@ mod tests {
         let root_peer = peer::index::get_root(&tx)?.unwrap();
 
         let review_1 = insert(
-            &common::PackageSecurity::Safe,
-            &common::ReviewConfidence::High,
             &std::collections::BTreeSet::<comment::Comment>::new(),
             &root_peer,
             &package_1,
             &tx,
         )?;
         let review_2 = insert(
-            &common::PackageSecurity::Safe,
-            &common::ReviewConfidence::High,
             &std::collections::BTreeSet::<comment::Comment>::new(),
             &root_peer,
             &package_2,
