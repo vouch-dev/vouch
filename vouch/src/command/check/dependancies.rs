@@ -24,9 +24,9 @@ pub fn report(
             extension.name()
         );
         let dependancies = match dependancies {
-            Ok(v) => v,
-            Err(e) => {
-                log::error!("Extension error: {error}", error = e);
+            Ok(dependancies) => dependancies,
+            Err(error) => {
+                log::error!("Extension error: {}", error);
                 continue;
             }
         };
@@ -39,10 +39,7 @@ pub fn report(
             .collect();
         let dependancy_reports = dependancy_reports?;
 
-        log::info!(
-            "Number of dependancies found: {count_dependancies}",
-            count_dependancies = dependancy_reports.len(),
-        );
+        log::info!("Number of dependancies found: {}", dependancy_reports.len());
         if dependancy_reports.is_empty() {
             log::debug!(
                 "Extension {} did not identify any dependancies in the \

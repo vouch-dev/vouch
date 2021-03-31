@@ -46,7 +46,7 @@ pub fn get_dependancy_report(
         &tx,
     )?;
 
-    if reviews.len() == 0 {
+    if reviews.is_empty() {
         // Report no reviews found for dependancy.
         return Ok(DependancyReport {
             summary: review::Summary::Warn,
