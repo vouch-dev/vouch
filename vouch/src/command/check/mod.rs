@@ -32,8 +32,6 @@ pub struct Arguments {
 }
 
 pub fn run_command(args: &Arguments) -> Result<()> {
-    // TODO: Use new review comments rather than user set ratings.
-
     let mut config = common::config::Config::load()?;
     extension::update_config(&mut config)?;
     let config = config;
