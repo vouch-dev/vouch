@@ -34,7 +34,7 @@ impl std::str::FromStr for Summary {
             "warn" => Ok(Summary::Warn),
             "fail" => Ok(Summary::Fail),
             _ => Err(anyhow::format_err!(
-                "Failed to parse comment summary type from string: {}",
+                "Failed to parse summary type from string: {}",
                 input
             )),
         }
