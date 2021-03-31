@@ -112,6 +112,7 @@ fn setup_config(
         let mut config = crate::common::config::Config::default();
 
         config.core.root_git_url = remote_repository_url.clone();
+        config.core.notify_vouch_public_sync = true;
         config.review_tool.name = "vscode".to_string();
         config.review_tool.install_check = false;
 

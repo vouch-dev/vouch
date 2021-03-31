@@ -65,6 +65,12 @@ pub fn run_command(_args: &Arguments) -> Result<()> {
     if common::fs::is_remote_repo_setup()? {
         println!("Pushing local changes to remote repository.");
         common::fs::git_push_root()?;
+
+        let config = crate::common::config::Config::load()?;
+        if config.core.notify_vouch_public_sync {
+            // TODO: Send notification to vouch servers.
+            log::info!("Notifying Vouch central of public repo update.")
+        }
     } else {
         println!(
             "Remote repository not specified.\n\
@@ -72,7 +78,6 @@ pub fn run_command(_args: &Arguments) -> Result<()> {
         Not pushing local changes."
         );
     }
-
     Ok(())
 }
 

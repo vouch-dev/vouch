@@ -7,6 +7,9 @@ use std::convert::TryFrom;
 pub struct Core {
     #[serde(rename = "root-git-url")]
     pub root_git_url: Option<crate::common::GitUrl>,
+
+    #[serde(rename = "notify-vouch-public-sync")]
+    pub notify_vouch_public_sync: bool,
 }
 
 fn get_regex() -> Result<regex::Regex> {
@@ -40,6 +43,20 @@ pub fn set(core: &mut Core, name: &str, value: &str) -> Result<()> {
             core.root_git_url = Some(crate::common::GitUrl::try_from(value)?);
             Ok(())
         }
+        "notify-vouch-public-sync" => {
+            let value = match value {
+                "true" => true,
+                "false" => false,
+                _ => {
+                    return Err(format_err!(
+                        "Expected value: `true` or `false`. Found: {}",
+                        value
+                    ));
+                }
+            };
+            core.notify_vouch_public_sync = value;
+            Ok(())
+        }
         _ => Err(format_err!(name_error_message.clone())),
     }
 }
@@ -60,6 +77,7 @@ pub fn get(core: &Core, name: &str) -> Result<String> {
             Some(url) => url.to_string(),
             None => "".to_string(),
         }),
+        "notify-vouch-public-sync" => Ok(core.notify_vouch_public_sync.to_string()),
         _ => Err(format_err!(name_error_message.clone())),
     }
 }
