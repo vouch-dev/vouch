@@ -1,4 +1,5 @@
 use super::report;
+use crate::review;
 use anyhow::Result;
 use prettytable::{self, cell};
 
@@ -12,7 +13,7 @@ pub fn get(dependancy_reports: &Vec<report::DependancyReport>) -> Result<prettyt
     dependancy_reports.sort();
 
     for dependancy in dependancy_reports {
-        let status_call: prettytable::Cell = dependancy.status.clone().into();
+        let status_call: prettytable::Cell = dependancy.summary.clone().into();
         let package_version = match &dependancy.version {
             Some(v) => v.as_str(),
             None => "",
@@ -41,7 +42,7 @@ fn get_note_cell(dependancy_report: &report::DependancyReport) -> prettytable::C
     };
     let mut note = prettytable::Cell::new_align(&note, prettytable::format::Alignment::LEFT);
 
-    if dependancy_report.status == report::DependancyStatus::Fail {
+    if dependancy_report.summary == review::Summary::Fail {
         note = note
             .with_style(prettytable::Attr::BackgroundColor(
                 prettytable::color::BRIGHT_RED,
@@ -53,18 +54,18 @@ fn get_note_cell(dependancy_report: &report::DependancyReport) -> prettytable::C
     note
 }
 
-impl From<report::DependancyStatus> for prettytable::Cell {
-    fn from(report: report::DependancyStatus) -> Self {
-        let lebel = match report {
-            report::DependancyStatus::Pass => " PASS ",
-            report::DependancyStatus::Warn => " WARN ",
-            report::DependancyStatus::Fail => " FAIL ",
+impl From<review::Summary> for prettytable::Cell {
+    fn from(summary: review::Summary) -> Self {
+        let lebel = match summary {
+            review::Summary::Pass => " PASS ",
+            review::Summary::Warn => " WARN ",
+            review::Summary::Fail => " FAIL ",
         };
 
-        let background_color = match report {
-            report::DependancyStatus::Pass => prettytable::color::BRIGHT_GREEN,
-            report::DependancyStatus::Warn => prettytable::color::YELLOW,
-            report::DependancyStatus::Fail => prettytable::color::BRIGHT_RED,
+        let background_color = match summary {
+            review::Summary::Pass => prettytable::color::BRIGHT_GREEN,
+            review::Summary::Warn => prettytable::color::YELLOW,
+            review::Summary::Fail => prettytable::color::BRIGHT_RED,
         };
 
         prettytable::Cell::new_align(lebel, prettytable::format::Alignment::CENTER)

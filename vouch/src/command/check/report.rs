@@ -4,15 +4,8 @@ use crate::common::StoreTransaction;
 use crate::review;
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
-pub enum DependancyStatus {
-    Fail,
-    Warn,
-    Pass,
-}
-
-#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct DependancyReport {
-    pub status: DependancyStatus,
+    pub summary: review::Summary,
     pub name: String,
     pub version: Option<String>,
     pub review_count: Option<u32>,
@@ -31,7 +24,7 @@ pub fn get_dependancy_report(
         };
 
         return Ok(DependancyReport {
-            status: DependancyStatus::Warn,
+            summary: review::Summary::Warn,
             name: dependancy.name.clone(),
             version: None,
             review_count: None,
@@ -56,7 +49,7 @@ pub fn get_dependancy_report(
     if reviews.len() == 0 {
         // Report no reviews found for dependancy.
         return Ok(DependancyReport {
-            status: DependancyStatus::Warn,
+            summary: review::Summary::Warn,
             name: dependancy.name.clone(),
             version: Some(package_version.clone()),
             review_count: Some(0),
@@ -69,7 +62,7 @@ pub fn get_dependancy_report(
     let note = get_dependancy_note(&stats)?;
 
     Ok(DependancyReport {
-        status: status,
+        summary: status,
         name: dependancy.name.clone(),
         version: Some(package_version.clone()),
         review_count: Some(reviews.len() as u32),
@@ -98,14 +91,14 @@ fn get_dependancy_stats(reviews: &Vec<review::Review>) -> Result<DependancyStats
     Ok(stats)
 }
 
-fn get_dependancy_status(stats: &DependancyStats) -> Result<DependancyStatus> {
+fn get_dependancy_status(stats: &DependancyStats) -> Result<review::Summary> {
     if stats.count_very_dangerous > 0 || stats.count_dangerous > 0 {
-        return Ok(DependancyStatus::Fail);
+        return Ok(review::Summary::Fail);
     }
     if stats.total_review_count == 0 {
-        return Ok(DependancyStatus::Warn);
+        return Ok(review::Summary::Warn);
     }
-    Ok(DependancyStatus::Pass)
+    Ok(review::Summary::Pass)
 }
 
 fn get_dependancy_note(stats: &DependancyStats) -> Result<String> {
