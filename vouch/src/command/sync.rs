@@ -31,16 +31,9 @@ pub fn run_command(_args: &Arguments) -> Result<()> {
 
     let mut updated_peers = Vec::new();
     for peer in root_children {
-        println!("Fetching: {}", peer.git_url.to_string());
-        let update_found = peer::fs::fetch_update(&peer, &mut tx)?;
-        if !update_found {
-            continue;
+        if let Some(peer) = update_peer(&peer, &mut tx)? {
+            updated_peers.push(peer);
         }
-
-        remove_index_peer_subtree(&peer, &mut tx)?;
-        peer::fs::merge_update(&peer, &mut tx)?;
-        let peer = merge_updated_peer_subtree(&peer, &mut tx)?;
-        updated_peers.push(peer);
     }
 
     if updated_peers.is_empty() {
@@ -48,35 +41,61 @@ pub fn run_command(_args: &Arguments) -> Result<()> {
             println!("All peers up-to-date.");
         }
     } else {
-        let mut message: String = "Updated peers:\n".to_owned();
-        for peer in updated_peers {
-            message.push_str(
-                format!(
-                    "{alias} ({git_url})\n",
-                    alias = peer.alias,
-                    git_url = peer.git_url
-                )
-                .as_str(),
-            );
-        }
+        let message = get_commit_message(&updated_peers)?;
         tx.commit(message.as_str())?;
     }
 
-    if common::fs::is_remote_repo_setup()? {
-        println!("Pushing local changes to remote repository.");
-        common::fs::git_push_root()?;
+    update_remote()?;
+    Ok(())
+}
 
-        let config = crate::common::config::Config::load()?;
-        if config.core.notify_vouch_public_sync {
-            // TODO: Send notification to vouch servers.
-            log::info!("Notifying Vouch central of public repo update.")
-        }
-    } else {
+/// Update peer.
+///
+/// Return Some(peer) if updated, otherwise None.
+fn update_peer(peer: &peer::Peer, tx: &mut common::StoreTransaction) -> Result<Option<peer::Peer>> {
+    println!("Fetching: {}", peer.git_url.to_string());
+    let update_found = peer::fs::fetch_update(&peer, tx)?;
+    if !update_found {
+        return Ok(None);
+    }
+
+    remove_index_peer_subtree(&peer, tx)?;
+    peer::fs::merge_update(&peer, tx)?;
+    let peer = merge_updated_peer_subtree(&peer, tx)?;
+    Ok(Some(peer))
+}
+
+fn get_commit_message(updated_peers: &Vec<peer::Peer>) -> Result<String> {
+    let mut message: String = "Updated peers:\n".to_owned();
+    for peer in updated_peers {
+        message.push_str(
+            format!(
+                "{alias} ({git_url})\n",
+                alias = peer.alias,
+                git_url = peer.git_url
+            )
+            .as_str(),
+        );
+    }
+    Ok(message)
+}
+
+fn update_remote() -> Result<()> {
+    if !common::fs::is_remote_repo_setup()? {
         println!(
             "Remote repository not specified.\n\
         Specify using `vouch config core.root-git-url <url>`.\n\
         Not pushing local changes."
         );
+    }
+
+    println!("Pushing local changes to remote repository.");
+    common::fs::git_push_root()?;
+
+    let config = crate::common::config::Config::load()?;
+    if config.core.notify_vouch_public_sync {
+        // TODO: Send notification to vouch servers.
+        log::info!("Notifying Vouch central of public repo update.")
     }
     Ok(())
 }
