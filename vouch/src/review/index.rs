@@ -242,6 +242,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
 }
 
 pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
+    let id = crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
     let package_name = crate::common::index::get_like_clause_param(fields.package_name);
     let package_version = crate::common::index::get_like_clause_param(fields.package_version);
     let registry_host_name = crate::common::index::get_like_clause_param(fields.registry_host_name);
@@ -266,19 +267,25 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
     tx.index_tx().execute_named(
         r"
         DELETE FROM review
-        JOIN peer
-            ON review.peer_id = peer.id
-        JOIN package
-            ON review.package_id = package.id
-        JOIN registry
-            ON package.registry_id = registry.id
-        WHERE
-            package.name LIKE :name ESCAPE '\'
-            AND package.version LIKE :version ESCAPE '\'
-            AND peer.id LIKE :peer_id ESCAPE '\'
-            AND registry.host_name LIKE :registry_host_name ESCAPE '\'
+        WHERE review.id IN (
+            SELECT review.id
+            FROM review
+            JOIN peer
+                ON review.peer_id = peer.id
+            JOIN package
+                ON review.package_id = package.id
+            JOIN registry
+                ON package.registry_id = registry.id
+            WHERE
+                review.id LIKE :id ESCAPE '\'
+                AND package.name LIKE :name ESCAPE '\'
+                AND package.version LIKE :version ESCAPE '\'
+                AND peer.id LIKE :peer_id ESCAPE '\'
+                AND registry.host_name LIKE :registry_host_name ESCAPE '\'
+        )
         ",
         &[
+            (":id", &id),
             (":name", &package_name),
             (":version", &package_version),
             (":peer_id", &peer_id),
@@ -387,6 +394,44 @@ mod tests {
         )?;
 
         let expected = maplit::btreeset! {review_1, review_2};
+        let result: std::collections::BTreeSet<common::Review> =
+            get(&Fields::default(), &tx)?.into_iter().collect();
+        assert_eq!(result, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_remove_review() -> Result<()> {
+        let mut store = crate::store::Store::from_tmp()?;
+        let tx = store.get_transaction()?;
+
+        let package_1 = get_package("package_1", &tx)?;
+        let package_2 = get_package("package_2", &tx)?;
+
+        let root_peer = peer::index::get_root(&tx)?.unwrap();
+
+        let review_1 = insert(
+            &std::collections::BTreeSet::<comment::Comment>::new(),
+            &root_peer,
+            &package_1,
+            &tx,
+        )?;
+        let review_2 = insert(
+            &std::collections::BTreeSet::<comment::Comment>::new(),
+            &root_peer,
+            &package_2,
+            &tx,
+        )?;
+
+        remove(
+            &Fields {
+                id: Some(review_1.id),
+                ..Default::default()
+            },
+            &tx,
+        )?;
+
+        let expected = maplit::btreeset! {review_2};
         let result: std::collections::BTreeSet<common::Review> =
             get(&Fields::default(), &tx)?.into_iter().collect();
         assert_eq!(result, expected);
