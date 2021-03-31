@@ -18,7 +18,11 @@ pub fn report(
 
     let local_dependancies =
         extension::identify_local_dependancies(&extensions, &working_directory)?;
-    for (extension, dependancies) in extensions.iter().zip(local_dependancies.into_iter()) {
+    for (i, (extension, dependancies)) in extensions
+        .iter()
+        .zip(local_dependancies.into_iter())
+        .enumerate()
+    {
         log::info!(
             "Inspecting dependancies supported by extension: {}",
             extension.name()
@@ -50,7 +54,12 @@ pub fn report(
         }
 
         let table = table::get(&dependancy_reports)?;
-        println!("Extension: {}", extension.name());
+        let inter_extension_padding = if i > 0 { "\n\n" } else { "" };
+        println!(
+            "{inter_extension_padding}Extension: {name}",
+            inter_extension_padding = inter_extension_padding,
+            name = extension.name()
+        );
         table.printstd();
     }
     Ok(())
