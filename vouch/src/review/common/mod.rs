@@ -12,7 +12,6 @@ use std::hash::Hash;
 pub mod summary;
 pub use summary::Summary;
 
-// Ord, PartialOrd,
 #[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Review {
     #[serde(skip)]
