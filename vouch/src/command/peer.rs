@@ -105,13 +105,14 @@ pub fn remove(args: &RemoveArguments) -> Result<()> {
     Ok(())
 }
 
-fn remove_peer_subtree(peer: &peer::Peer, tx: &mut common::StoreTransaction) -> Result<()> {
-    let root_to_peer_subtree = peer::index::get_root_to_peer_subtree(&peer, &tx)?;
+/// Remove peer and its subtree.
+fn remove_peer_subtree(target_peer: &peer::Peer, tx: &mut common::StoreTransaction) -> Result<()> {
+    let root_to_peer_subtree = peer::index::get_root_to_peer_subtree(&target_peer, &tx)?;
     peer::fs::remove(&root_to_peer_subtree, tx)?;
 
     // Remove subtree in sets of breadth first layers.
-    // Processing order: from leaves to root.
-    let peers_breadth_layers = peer::index::get_breadth_first_child_peers(&peer, &tx)?;
+    // Processing order: from leaves to starting peer (inclusive).
+    let peers_breadth_layers = peer::index::get_breadth_first_child_peers(&target_peer, &tx)?;
     for peers in peers_breadth_layers.iter().rev() {
         for peer in peers {
             review::index::remove(

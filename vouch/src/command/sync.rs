@@ -76,10 +76,14 @@ pub fn run_command(_args: &Arguments) -> Result<()> {
     Ok(())
 }
 
-fn remove_peer_index_data(peer: &peer::Peer, tx: &mut common::StoreTransaction) -> Result<()> {
+fn remove_peer_index_data(
+    target_peer: &peer::Peer,
+    tx: &mut common::StoreTransaction,
+) -> Result<()> {
     // Remove subtree in sets of breadth first layers.
+    let peers_breadth_layers = peer::index::get_breadth_first_child_peers(&target_peer, &tx)?;
+
     // Processing order: from leaves to root.
-    let peers_breadth_layers = peer::index::get_breadth_first_child_peers(&peer, &tx)?;
     for peers in peers_breadth_layers.iter().rev() {
         for peer in peers {
             review::index::remove(

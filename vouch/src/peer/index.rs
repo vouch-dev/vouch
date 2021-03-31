@@ -396,6 +396,9 @@ pub fn get_new_alias(git_url: &crate::common::GitUrl, tx: &StoreTransaction) -> 
     Ok(alias.to_string())
 }
 
+/// Returns child peer subtree in breadth first layers.
+///
+/// Starting peer is in the first layer. Leaf peers are in the final layer.
 pub fn get_breadth_first_child_peers(
     starting_peer: &common::Peer,
     tx: &StoreTransaction,
