@@ -2,6 +2,12 @@ use anyhow::{format_err, Context, Result};
 
 use super::common;
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct StaticData {
+    pub name: String,
+    pub registry_host_names: Vec<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct ProcessExtension {
     process_path_: std::path::PathBuf,
@@ -24,18 +30,12 @@ impl common::Extension for ProcessExtension {
     where
         Self: Sized,
     {
-        #[derive(serde::Serialize, serde::Deserialize)]
-        struct StaticData {
-            name: String,
-            registry_host_names: Vec<String>,
-        }
-
         let static_data: StaticData = if extension_config_path.is_file() {
             let file = std::fs::File::open(&extension_config_path)?;
             let reader = std::io::BufReader::new(file);
             serde_yaml::from_reader(reader)?
         } else {
-            let static_data: Box<StaticData> = run_process(&process_path, &vec!["from-process"])?;
+            let static_data: Box<StaticData> = run_process(&process_path, &vec!["static-data"])?;
             let static_data = *static_data;
 
             let file = std::fs::OpenOptions::new()

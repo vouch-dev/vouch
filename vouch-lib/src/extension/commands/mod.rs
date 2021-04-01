@@ -2,15 +2,15 @@ use super::common;
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
-mod from_process;
 mod identify_local_dependancies;
 mod remote_package_metadata;
+mod static_data;
 
 #[derive(Debug, StructOpt, Clone)]
 enum Command {
-    /// Call from_process extension function.
-    #[structopt(name = "from-process")]
-    FromProcess,
+    /// Get extension static data.
+    #[structopt(name = "static-data")]
+    StaticData,
 
     /// Identify local dependancies.
     #[structopt(name = "identify-local-dependancies")]
@@ -26,8 +26,8 @@ fn run_command<T: common::Extension + std::fmt::Debug>(
     extension: &mut T,
 ) -> Result<()> {
     match command {
-        Command::FromProcess => {
-            from_process::run_command(extension)?;
+        Command::StaticData => {
+            static_data::run_command(extension)?;
         }
 
         Command::IdentifyLocalDependancies(args) => {
