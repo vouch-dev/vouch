@@ -163,7 +163,7 @@ fn setup_existing_review(
     )?;
 
     log::debug!("Count existing matching reviews: {}", reviews.len());
-    let reviews = filter_reviews(&reviews, &extension_names)?;
+    let reviews = filter_reviews(&reviews, &extension_names, &config)?;
     log::debug!(
         "Count existing matching reviews post filtering: {}",
         reviews.len()
@@ -193,9 +193,9 @@ fn setup_existing_review(
 fn filter_reviews(
     reviews: &Vec<review::Review>,
     target_extension_names: &BTreeSet<String>,
+    config: &common::config::Config,
 ) -> Result<Vec<review::Review>> {
     // Find registry host names which are handled by the given extensions.
-    let config = crate::common::config::Config::load()?;
     let extension_supported_registry_host_names: std::collections::BTreeSet<String> = config
         .extensions
         .supported_package_registries
