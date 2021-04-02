@@ -45,7 +45,7 @@ pub fn run_command(command: Command) -> Result<()> {
 
 #[derive(Debug, StructOpt, Clone)]
 pub enum Command {
-    /// Initial global setup.
+    /// Initial user setup.
     ///
     /// Initialise a local clone of a user's 'reviews' Git repository. Setup configuration settings.
     #[structopt(name = "setup")]
