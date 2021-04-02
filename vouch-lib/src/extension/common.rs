@@ -35,15 +35,13 @@ pub trait Extension: Send + Sync {
     fn name(&self) -> String;
     fn registries(&self) -> Vec<String>;
 
-    /// Returns a list of local package dependancies which are
-    /// relevant to this extension.
+    /// Identify local package dependancies.
     fn identify_local_dependancies(
         &self,
         working_directory: &std::path::PathBuf,
     ) -> Result<Vec<LocalDependancy>>;
 
-    /// Given a package name and version, queries the remote
-    /// registry for package metadata.
+    /// Query package registries for package metadata.
     fn remote_package_metadata(
         &self,
         package_name: &str,
