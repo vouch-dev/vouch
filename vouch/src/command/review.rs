@@ -178,6 +178,8 @@ fn setup_existing_review(
         Some(review) => review,
         None => return Ok(None),
     };
+
+    log::debug!("Setting up review workspace using existing review package metadata.");
     let (workspace_directory, _archive_hash) = review::workspace::ensure(
         &review.package.name,
         &review.package.version,
