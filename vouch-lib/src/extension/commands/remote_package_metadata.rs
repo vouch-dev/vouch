@@ -16,10 +16,6 @@ pub struct Arguments {
     /// Package version.
     #[structopt(name = "package-version")]
     pub package_version: String,
-
-    /// Working directory.
-    #[structopt(name = "working-directory")]
-    pub working_directory: String,
 }
 
 pub fn run_command<T: common::Extension + std::fmt::Debug>(
