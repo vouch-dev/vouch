@@ -119,9 +119,13 @@ fn setup_review(
     config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<(review::Review, ReviewEditMode, std::path::PathBuf)> {
-    if let Some((review, workspace_directory)) =
-        setup_existing_review(&package_name, &package_version, &extension_names, &tx)?
-    {
+    if let Some((review, workspace_directory)) = setup_existing_review(
+        &package_name,
+        &package_version,
+        &extension_names,
+        &config,
+        &tx,
+    )? {
         log::debug!("Existing review found.");
         Ok((review, ReviewEditMode::Update, workspace_directory))
     } else {
@@ -142,6 +146,7 @@ fn setup_existing_review(
     package_name: &str,
     package_version: &str,
     extension_names: &BTreeSet<String>,
+    config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<Option<(review::Review, std::path::PathBuf)>> {
     log::debug!("Checking index for existing root peer review.");
@@ -165,7 +170,7 @@ fn setup_existing_review(
     );
 
     if reviews.len() > 1 {
-        handle_multiple_matching_reviews(&reviews)?;
+        handle_multiple_matching_reviews(&reviews, &config)?;
         return Ok(None);
     }
 
@@ -209,14 +214,16 @@ fn filter_reviews(
 }
 
 /// Request extension specification when multiple matching reviews found.
-fn handle_multiple_matching_reviews(reviews: &Vec<review::Review>) -> Result<()> {
+fn handle_multiple_matching_reviews(
+    reviews: &Vec<review::Review>,
+    config: &common::config::Config,
+) -> Result<()> {
     assert!(reviews.len() > 1);
 
     let registry_host_names: std::collections::BTreeSet<String> = reviews
         .iter()
         .map(|review| review.package.registry.host_name.clone())
         .collect();
-    let config = crate::common::config::Config::load()?;
     let extension_names: std::collections::BTreeSet<String> = config
         .extensions
         .supported_package_registries
