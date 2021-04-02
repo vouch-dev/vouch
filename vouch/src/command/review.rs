@@ -59,8 +59,13 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
     let active_review_file = review::active::ensure(&review, &reviews_directory)?;
 
+    println!("Starting review tool.");
     review::tool::run(&workspace_directory, &config)?;
     review.comments = get_comments(&active_review_file, &tx)?;
+    println!(
+        "Review tool closed. Fund {} review comments.",
+        review.comments.len()
+    );
 
     if review.comments.is_empty() {
         println!("No review comments found. Review saved as ongoing.");
@@ -126,10 +131,10 @@ fn setup_review(
         &config,
         &tx,
     )? {
-        log::debug!("Existing review found.");
+        println!("Selecting existing review for editing.");
         Ok((review, ReviewEditMode::Update, workspace_directory))
     } else {
-        log::debug!("No existing review found. Starting new review.");
+        println!("Starting new review.");
         let (review, workspace_directory) = setup_new_review(
             &package_name,
             &package_version,
