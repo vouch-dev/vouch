@@ -8,6 +8,29 @@ use crate::review;
 use crate::store;
 
 #[derive(Debug, StructOpt, Clone)]
+pub enum Subcommands {
+    /// Add peer.
+    Add(AddArguments),
+
+    /// Remove peer.
+    Remove(RemoveArguments),
+}
+
+pub fn run_subcommand(subcommand: &Subcommands) -> Result<()> {
+    match subcommand {
+        Subcommands::Add(args) => {
+            log::info!("Running command: peer add");
+            add(&args)?;
+        }
+        Subcommands::Remove(args) => {
+            log::info!("Running command: peer remove");
+            remove(&args)?;
+        }
+    }
+    Ok(())
+}
+
+#[derive(Debug, StructOpt, Clone)]
 #[structopt(
     name = "no_version",
     no_version,
@@ -19,7 +42,7 @@ pub struct AddArguments {
     pub git_url: crate::common::GitUrl,
 }
 
-pub fn add(args: &AddArguments) -> Result<()> {
+fn add(args: &AddArguments) -> Result<()> {
     let mut store = store::Store::from_root()?;
     let mut tx = store.get_transaction()?;
 
@@ -74,7 +97,7 @@ pub struct RemoveArguments {
     pub git_url: crate::common::GitUrl,
 }
 
-pub fn remove(args: &RemoveArguments) -> Result<()> {
+fn remove(args: &RemoveArguments) -> Result<()> {
     let mut store = store::Store::from_root()?;
     let mut tx = store.get_transaction()?;
 

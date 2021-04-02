@@ -14,15 +14,10 @@ pub fn run_command(command: Command) -> Result<()> {
             log::info!("Running command: setup");
             setup::run_command(&args)?;
         }
-        Command::Follow(args) => {
-            log::info!("Running command: follow");
+        Command::Peer(subcommand) => {
+            log::info!("Running command: peer");
             setup::is_complete()?;
-            peer::add(&args)?;
-        }
-        Command::Unfollow(args) => {
-            log::info!("Running command: unfollow");
-            setup::is_complete()?;
-            peer::remove(&args)?;
+            peer::run_subcommand(&subcommand)?;
         }
         Command::Review(args) => {
             log::info!("Running command: review");
@@ -56,13 +51,9 @@ pub enum Command {
     #[structopt(name = "setup")]
     Setup(setup::Arguments),
 
-    /// Follow a reviewer.
-    #[structopt(name = "follow")]
-    Follow(peer::AddArguments),
-
-    /// Unfollow a reviewer.
-    #[structopt(name = "unfollow")]
-    Unfollow(peer::RemoveArguments),
+    /// Manage peers.
+    #[structopt(name = "peer")]
+    Peer(peer::Subcommands),
 
     /// Review a package.
     #[structopt(name = "review")]
