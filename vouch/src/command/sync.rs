@@ -87,6 +87,7 @@ fn update_remote() -> Result<()> {
         Specify using `vouch config core.root-git-url <url>`.\n\
         Not pushing local changes."
         );
+        return Ok(());
     }
 
     println!("Pushing local changes to remote repository.");
