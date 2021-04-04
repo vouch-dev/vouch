@@ -16,6 +16,7 @@ pub fn report(
     let working_directory = std::env::current_dir()?;
     log::debug!("Current working directory: {}", working_directory.display());
 
+    let mut definition_file_found = false;
     let local_dependancies =
         extension::identify_local_dependancies(&extensions, &working_directory)?;
     for (i, (extension, dependancies)) in extensions
@@ -51,6 +52,8 @@ pub fn report(
                 extension.name()
             );
             continue;
+        } else {
+            definition_file_found = true;
         }
 
         let table = table::get(&dependancy_reports)?;
@@ -61,6 +64,10 @@ pub fn report(
             name = extension.name()
         );
         table.printstd();
+    }
+
+    if !definition_file_found {
+        println!("No definition files found in working directory or parent directories.")
     }
     Ok(())
 }
