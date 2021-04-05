@@ -1,5 +1,5 @@
 use anyhow::{format_err, Context, Result};
-use std::{collections::HashSet, io::Read};
+use std::io::Read;
 use strum::IntoEnumIterator;
 
 mod pipfile;
@@ -43,7 +43,7 @@ impl vouch_lib::extension::Extension for PyExtension {
     fn identify_local_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
-    ) -> Result<Vec<vouch_lib::extension::LocalDependency>> {
+    ) -> Result<Vec<vouch_lib::extension::DependenciesSpec>> {
         // Identify all dependency definition files.
         let dependency_files = match identify_dependency_files(&working_directory) {
             Some(v) => v,
@@ -51,21 +51,23 @@ impl vouch_lib::extension::Extension for PyExtension {
         };
 
         // Read all dependencies definitions files.
-        let mut all_dependencies = HashSet::new();
+        let mut all_dependency_specs = Vec::new();
         for dependency_file in dependency_files {
-            // TODO: Handle all definition files.
-            let dependencies: HashSet<vouch_lib::extension::LocalDependency> =
-                match dependency_file.r#type {
-                    DependencyFileType::PipfileLock => {
-                        pipfile::get_dependencies(&dependency_file.path)?
-                    }
-                };
-            for dependency in dependencies {
-                all_dependencies.insert(dependency);
-            }
+            // TODO: Add support for parsing all definition file types.
+            let (dependencies, registry_host_name) = match dependency_file.r#type {
+                DependencyFileType::PipfileLock => (
+                    pipfile::get_dependencies(&dependency_file.path)?,
+                    pipfile::get_registry_host_name(),
+                ),
+            };
+            all_dependency_specs.push(vouch_lib::extension::DependenciesSpec {
+                path: dependency_file.path,
+                registry_host_name: registry_host_name,
+                dependencies: dependencies.into_iter().collect(),
+            });
         }
 
-        Ok(all_dependencies.into_iter().collect())
+        Ok(all_dependency_specs)
     }
 
     fn remote_package_metadata(

@@ -74,7 +74,7 @@ fn select_search_result<'a>(
 pub fn identify_local_dependencies(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     working_directory: &std::path::PathBuf,
-) -> Result<Vec<Result<Vec<vouch_lib::extension::LocalDependency>>>> {
+) -> Result<Vec<Result<Vec<vouch_lib::extension::DependenciesSpec>>>> {
     crossbeam_utils::thread::scope(|s| {
         let mut threads = Vec::new();
         for extension in extensions {

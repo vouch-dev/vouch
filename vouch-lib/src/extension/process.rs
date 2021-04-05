@@ -66,17 +66,17 @@ impl common::Extension for ProcessExtension {
         self.registry_host_names_.clone()
     }
 
-    /// Returns a list of local package dependencies which might also be hosted on the registry.
+    /// Returns a list of local package dependencies specification files.
     fn identify_local_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
-    ) -> Result<Vec<common::LocalDependency>> {
+    ) -> Result<Vec<common::DependenciesSpec>> {
         let working_directory = working_directory.to_str().ok_or(format_err!(
             "Failed to parse path into string: {}",
             working_directory.display()
         ))?;
         let args = vec!["identify-local-dependencies", working_directory];
-        let output: Box<Vec<common::LocalDependency>> = run_process(&self.process_path_, &args)?;
+        let output: Box<Vec<common::DependenciesSpec>> = run_process(&self.process_path_, &args)?;
         Ok(*output)
     }
 

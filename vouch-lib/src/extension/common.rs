@@ -1,15 +1,27 @@
 use anyhow::Result;
 
-/// Dependencies found from inspecting the local filesystem.
+/// A dependency as specified within a dependencies definition file.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct LocalDependency {
-    pub registry_host_name: String,
+pub struct Dependency {
     pub name: String,
 
     // TODO: Change to result with error types.
     pub version: Option<String>,
     pub version_parse_error: bool,
     pub missing_version: bool,
+}
+
+/// A dependencies specification file found from inspecting the local filesystem.
+#[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct DependenciesSpec {
+    /// Absolute file path for dependencies specification file.
+    pub path: std::path::PathBuf,
+
+    /// Dependencies registry host name.
+    pub registry_host_name: String,
+
+    /// Dependencies specified within the dependencies specification file.
+    pub dependencies: Vec<Dependency>,
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -39,7 +51,7 @@ pub trait Extension: Send + Sync {
     fn identify_local_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
-    ) -> Result<Vec<LocalDependency>>;
+    ) -> Result<Vec<DependenciesSpec>>;
 
     /// Query package registries for package metadata.
     fn remote_package_metadata(
