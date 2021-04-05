@@ -338,7 +338,7 @@ mod tests {
         let result =
             get_archive_file_extension(&url::Url::parse("https://localhost/d3/d3-4.10.0.tar.gz")?)?;
         let expected = "tar.gz".to_string();
-        assert!(result == expected, format!("unexpected result: {}", result));
+        assert!(result == expected);
         Ok(())
     }
 

@@ -568,10 +568,7 @@ mod tests {
             },
         };
         let unexpected_peers = crate::common::index::get_difference_sans_id(&result, &expected)?;
-        assert!(
-            unexpected_peers.is_empty(),
-            format!("unexpected peers: {:?}", unexpected_peers)
-        );
+        assert!(unexpected_peers.is_empty(), "Found unexpected peers.");
         Ok(())
     }
 
