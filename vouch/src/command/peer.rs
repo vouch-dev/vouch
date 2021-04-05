@@ -81,7 +81,7 @@ fn add(args: &AddArguments) -> Result<()> {
     let peer_index_tx = peer_store.get_transaction()?;
     store::index::merge(&args.git_url, &peer_index_tx, &tx)?;
 
-    tx.commit(format!("Follow: {}", &args.git_url).as_str())?;
+    tx.commit(format!("Add peer: {}", &args.git_url).as_str())?;
     Ok(())
 }
 
@@ -119,7 +119,7 @@ fn remove(args: &RemoveArguments) -> Result<()> {
 
     tx.commit(
         format!(
-            "Unfollow: {alias} ({git_url})",
+            "Remove peer: {alias} ({git_url})",
             alias = target_peer.alias,
             git_url = target_peer.git_url
         )
