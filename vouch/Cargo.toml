@@ -6,7 +6,7 @@ edition = "2018"
 repository = "https://github.com/vouch-dev/vouch"
 license = "MIT"
 default-run = "vouch"
-description = "A software release review system."
+description = "A multi-ecosystem distributed package review system."
 
 [dependencies]
 vouch-lib = { path = "../vouch-lib", version = "0.2.0" }

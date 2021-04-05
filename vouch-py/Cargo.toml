@@ -5,7 +5,7 @@ authors = ["rndhouse <rndhouse@protonmail.com>"]
 edition = "2018"
 repository = "https://github.com/vouch-dev/vouch"
 license = "MIT"
-description = "Python ecosystem extension for the Vouch release review system."
+description = "Python ecosystem extension for the Vouch package review system."
 
 [lib]
 name = "vouch_py_lib"
