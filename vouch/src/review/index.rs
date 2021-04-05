@@ -310,6 +310,7 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
 
 /// Merge reviews from incoming index into another index. Returns the newly merged reviews.
 pub fn merge(
+    incoming_root_git_url: &crate::common::GitUrl,
     incoming_tx: &StoreTransaction,
     tx: &StoreTransaction,
 ) -> Result<HashSet<common::Review>> {
@@ -317,9 +318,15 @@ pub fn merge(
 
     let mut new_reviews = HashSet::new();
     for review in incoming_reviews {
+        let peer_git_url = if review.peer.is_root() {
+            incoming_root_git_url.clone()
+        } else {
+            review.peer.git_url.clone()
+        };
+
         let peer = peer::index::get(
             &peer::index::Fields {
-                git_url: Some(&review.peer.git_url),
+                git_url: Some(&peer_git_url),
                 ..Default::default()
             },
             &tx,
@@ -347,7 +354,7 @@ pub fn merge(
             review
         ))?;
 
-        let mut new_comments = std::collections::BTreeSet::<comment::Comment>::new();
+        let mut new_comments = std::collections::BTreeSet::<_>::new();
         for comment in review.comments {
             let comment = comment::index::insert(
                 &comment.path,

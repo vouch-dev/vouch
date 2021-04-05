@@ -47,7 +47,7 @@ pub fn merge(
     registry::index::merge(&incoming_tx, &tx)?;
     peer::index::merge(&incoming_root_git_url, &incoming_tx, &tx)?;
     package::index::merge(&incoming_tx, &tx)?;
-    review::index::merge(&incoming_tx, &tx)?;
+    review::index::merge(&incoming_root_git_url, &incoming_tx, &tx)?;
 
     // TODO: Remove unused rows after inserting reviews. Add index::clean.
     Ok(())
