@@ -93,7 +93,7 @@ fn get_dependancy_status(stats: &DependancyStats) -> Result<review::Summary> {
     if stats.count_fail_comments > 0 {
         return Ok(review::Summary::Fail);
     }
-    if stats.total_review_count == 0 {
+    if stats.total_review_count == 0 || stats.count_warn_comments > 0 {
         return Ok(review::Summary::Warn);
     }
     Ok(review::Summary::Pass)
@@ -102,11 +102,11 @@ fn get_dependancy_status(stats: &DependancyStats) -> Result<review::Summary> {
 fn get_dependancy_note(stats: &DependancyStats) -> Result<String> {
     let mut note_parts = Vec::<_>::new();
     if stats.count_fail_comments > 0 {
-        note_parts.push(format!("fail comments ({})", stats.count_fail_comments));
+        note_parts.push(format!("fail ({})", stats.count_fail_comments));
     }
 
     if stats.count_warn_comments > 0 {
-        note_parts.push(format!("warn comments ({})", stats.count_warn_comments));
+        note_parts.push(format!("warn ({})", stats.count_warn_comments));
     }
 
     Ok(note_parts.join("; "))
