@@ -40,32 +40,32 @@ impl vouch_lib::extension::Extension for PyExtension {
         self.registry_host_names_.clone()
     }
 
-    fn identify_local_dependancies(
+    fn identify_local_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
-    ) -> Result<Vec<vouch_lib::extension::LocalDependancy>> {
-        // Identify all dependancy definition files.
-        let dependancy_files = match identify_dependancy_files(&working_directory) {
+    ) -> Result<Vec<vouch_lib::extension::LocalDependency>> {
+        // Identify all dependency definition files.
+        let dependency_files = match identify_dependency_files(&working_directory) {
             Some(v) => v,
             None => return Ok(Vec::new()),
         };
 
-        // Read all dependancies definitions files.
-        let mut all_dependancies = HashSet::new();
-        for dependancy_file in dependancy_files {
+        // Read all dependencies definitions files.
+        let mut all_dependencies = HashSet::new();
+        for dependency_file in dependency_files {
             // TODO: Handle all definition files.
-            let dependancies: HashSet<vouch_lib::extension::LocalDependancy> =
-                match dependancy_file.r#type {
-                    DependancyFileType::PipfileLock => {
-                        pipfile::get_dependancies(&dependancy_file.path)?
+            let dependencies: HashSet<vouch_lib::extension::LocalDependency> =
+                match dependency_file.r#type {
+                    DependencyFileType::PipfileLock => {
+                        pipfile::get_dependencies(&dependency_file.path)?
                     }
                 };
-            for dependancy in dependancies {
-                all_dependancies.insert(dependancy);
+            for dependency in dependencies {
+                all_dependencies.insert(dependency);
             }
         }
 
-        Ok(all_dependancies.into_iter().collect())
+        Ok(all_dependencies.into_iter().collect())
     }
 
     fn remote_package_metadata(
@@ -148,14 +148,14 @@ fn get_archive_url(
     Err(format_err!("Failed to identify package archive URL."))
 }
 
-/// Package dependancy file types.
+/// Package dependency file types.
 #[derive(Debug, Copy, Clone, strum_macros::EnumIter)]
-enum DependancyFileType {
+enum DependencyFileType {
     PipfileLock,
 }
 
-impl DependancyFileType {
-    /// Return file name associated with dependancy type.
+impl DependencyFileType {
+    /// Return file name associated with dependency type.
     pub fn file_name(&self) -> std::path::PathBuf {
         match self {
             Self::PipfileLock => std::path::PathBuf::from("Pipfile.lock"),
@@ -163,39 +163,39 @@ impl DependancyFileType {
     }
 }
 
-/// Package dependancy file type and file path.
+/// Package dependency file type and file path.
 #[derive(Debug, Clone)]
-struct DependancyFile {
-    r#type: DependancyFileType,
+struct DependencyFile {
+    r#type: DependencyFileType,
     path: std::path::PathBuf,
 }
 
-/// Returns a vector of identified package dependancy definition files.
+/// Returns a vector of identified package dependency definition files.
 ///
 /// Walks up the directory tree directory tree until the first positive result is found.
-fn identify_dependancy_files(
+fn identify_dependency_files(
     working_directory: &std::path::PathBuf,
-) -> Option<Vec<DependancyFile>> {
+) -> Option<Vec<DependencyFile>> {
     assert!(working_directory.is_absolute());
     let mut working_directory = working_directory.clone();
 
     loop {
         // If at least one target is found, assume package is present.
-        let mut found_dependancy_file = false;
+        let mut found_dependency_file = false;
 
-        let mut dependancy_files: Vec<DependancyFile> = Vec::new();
-        for dependancy_file_type in DependancyFileType::iter() {
-            let target_absolute_path = working_directory.join(dependancy_file_type.file_name());
+        let mut dependency_files: Vec<DependencyFile> = Vec::new();
+        for dependency_file_type in DependencyFileType::iter() {
+            let target_absolute_path = working_directory.join(dependency_file_type.file_name());
             if target_absolute_path.is_file() {
-                found_dependancy_file = true;
-                dependancy_files.push(DependancyFile {
-                    r#type: dependancy_file_type,
+                found_dependency_file = true;
+                dependency_files.push(DependencyFile {
+                    r#type: dependency_file_type,
                     path: target_absolute_path,
                 })
             }
         }
-        if found_dependancy_file {
-            return Some(dependancy_files);
+        if found_dependency_file {
+            return Some(dependency_files);
         }
 
         // No need to move further up the directory tree after this loop.

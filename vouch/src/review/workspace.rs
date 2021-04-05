@@ -86,7 +86,7 @@ fn get_archive_file_extension(archive_url: &url::Url) -> Result<String> {
         ))?
         .to_str()
         .ok_or(format_err!(
-            "Failed to parse file extension unicode charecters."
+            "Failed to parse file extension unicode characters."
         ))?
         .to_owned())
 }
@@ -269,8 +269,8 @@ fn get_file_line_counts(
 
     let mut file_line_counts = std::collections::BTreeMap::new();
 
-    for (_language_type, langauge) in &languages {
-        for report in &langauge.reports {
+    for (_language_type, language) in &languages {
+        for report in &language.reports {
             let file_path = report.name.clone();
             let total_line_count = report.stats.lines();
             *file_line_counts.entry(file_path).or_insert(0) += total_line_count;

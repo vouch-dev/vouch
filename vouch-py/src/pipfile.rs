@@ -41,12 +41,12 @@ fn get_parsed_version(version: &Option<&str>) -> Result<ParsedVersion> {
 
 fn parse_section(
     json_section: &serde_json::map::Map<std::string::String, serde_json::value::Value>,
-) -> Result<HashSet<vouch_lib::extension::LocalDependancy>> {
-    let mut dependancies = HashSet::new();
+) -> Result<HashSet<vouch_lib::extension::LocalDependency>> {
+    let mut dependencies = HashSet::new();
     for (package_name, entry) in json_section {
         let version_parse_result = get_parsed_version(&entry["version"].as_str())?;
 
-        dependancies.insert(vouch_lib::extension::LocalDependancy {
+        dependencies.insert(vouch_lib::extension::LocalDependency {
             registry_host_name: HOST_NAME.to_owned(),
             name: package_name.clone(),
             version: version_parse_result.version,
@@ -54,13 +54,13 @@ fn parse_section(
             missing_version: version_parse_result.missing,
         });
     }
-    Ok(dependancies)
+    Ok(dependencies)
 }
 
-/// Parse dependancies from project dependancies definition file.
-pub fn get_dependancies(
+/// Parse dependencies from project dependencies definition file.
+pub fn get_dependencies(
     file_path: &std::path::PathBuf,
-) -> Result<HashSet<vouch_lib::extension::LocalDependancy>> {
+) -> Result<HashSet<vouch_lib::extension::LocalDependency>> {
     let file = std::fs::File::open(file_path)?;
     let reader = std::io::BufReader::new(file);
     let pipfile: serde_json::Value = serde_json::from_reader(reader).context(format!(
@@ -68,16 +68,16 @@ pub fn get_dependancies(
         file_path.display()
     ))?;
 
-    let mut all_dependancies: HashSet<vouch_lib::extension::LocalDependancy> = HashSet::new();
+    let mut all_dependencies: HashSet<vouch_lib::extension::LocalDependency> = HashSet::new();
     for section in vec!["default", "develop"] {
         let json_section = pipfile[section].as_object().ok_or(format_err!(
             "Failed to parse '{}' section of Pipfile.lock",
             section
         ))?;
-        let dependancies = parse_section(&json_section)?;
-        for dependancy in dependancies {
-            all_dependancies.insert(dependancy);
+        let dependencies = parse_section(&json_section)?;
+        for dependency in dependencies {
+            all_dependencies.insert(dependency);
         }
     }
-    Ok(all_dependancies)
+    Ok(all_dependencies)
 }

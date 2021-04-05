@@ -20,7 +20,7 @@ impl common::Extension for ProcessExtension {
     where
         Self: Sized,
     {
-        unimplemented!("Initialise this type with ProcessExtension::from_process.");
+        unimplemented!("Initialize this type with ProcessExtension::from_process.");
     }
 
     fn from_process(
@@ -66,17 +66,17 @@ impl common::Extension for ProcessExtension {
         self.registry_host_names_.clone()
     }
 
-    /// Returns a list of local package dependancies which might also be hosted on the registry.
-    fn identify_local_dependancies(
+    /// Returns a list of local package dependencies which might also be hosted on the registry.
+    fn identify_local_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
-    ) -> Result<Vec<common::LocalDependancy>> {
+    ) -> Result<Vec<common::LocalDependency>> {
         let working_directory = working_directory.to_str().ok_or(format_err!(
             "Failed to parse path into string: {}",
             working_directory.display()
         ))?;
-        let args = vec!["identify-local-dependancies", working_directory];
-        let output: Box<Vec<common::LocalDependancy>> = run_process(&self.process_path_, &args)?;
+        let args = vec!["identify-local-dependencies", working_directory];
+        let output: Box<Vec<common::LocalDependency>> = run_process(&self.process_path_, &args)?;
         Ok(*output)
     }
 

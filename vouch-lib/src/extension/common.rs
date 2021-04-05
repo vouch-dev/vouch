@@ -1,8 +1,8 @@
 use anyhow::Result;
 
-/// Dependancies found from inspecting the local filesystem.
+/// Dependencies found from inspecting the local filesystem.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct LocalDependancy {
+pub struct LocalDependency {
     pub registry_host_name: String,
     pub name: String,
 
@@ -24,7 +24,7 @@ pub trait Extension: Send + Sync {
     where
         Self: Sized;
 
-    /// Initialise extension from a process.
+    /// Initialize extension from a process.
     fn from_process(
         process_path: &std::path::PathBuf,
         extension_config_path: &std::path::PathBuf,
@@ -35,11 +35,11 @@ pub trait Extension: Send + Sync {
     fn name(&self) -> String;
     fn registries(&self) -> Vec<String>;
 
-    /// Identify local package dependancies.
-    fn identify_local_dependancies(
+    /// Identify local package dependencies.
+    fn identify_local_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
-    ) -> Result<Vec<LocalDependancy>>;
+    ) -> Result<Vec<LocalDependency>>;
 
     /// Query package registries for package metadata.
     fn remote_package_metadata(

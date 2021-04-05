@@ -19,7 +19,7 @@ pub fn run_command<T: common::Extension + std::fmt::Debug>(
     extension: &T,
 ) -> Result<()> {
     let working_directory = std::path::PathBuf::from(&args.working_directory);
-    let local_dependancies = extension.identify_local_dependancies(&working_directory)?;
-    println!("{}", serde_json::to_string(&local_dependancies)?);
+    let local_dependencies = extension.identify_local_dependencies(&working_directory)?;
+    println!("{}", serde_json::to_string(&local_dependencies)?);
     Ok(())
 }

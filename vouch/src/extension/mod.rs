@@ -68,18 +68,18 @@ fn select_search_result<'a>(
     }
 }
 
-/// Identify all supported dependancies in a local code base.
+/// Identify all supported dependencies in a local code base.
 ///
 /// Conducts a parallel search accross extensions.
-pub fn identify_local_dependancies(
+pub fn identify_local_dependencies(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     working_directory: &std::path::PathBuf,
-) -> Result<Vec<Result<Vec<vouch_lib::extension::LocalDependancy>>>> {
+) -> Result<Vec<Result<Vec<vouch_lib::extension::LocalDependency>>>> {
     crossbeam_utils::thread::scope(|s| {
         let mut threads = Vec::new();
         for extension in extensions {
             threads
-                .push(s.spawn(move |_| extension.identify_local_dependancies(&working_directory)));
+                .push(s.spawn(move |_| extension.identify_local_dependencies(&working_directory)));
         }
         let mut result = Vec::new();
         for thread in threads {

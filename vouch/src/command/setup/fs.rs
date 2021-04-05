@@ -8,7 +8,7 @@ use crate::extension;
 fn handle_nonempty_git_repository(directory_path: &std::path::PathBuf, force: bool) -> Result<()> {
     let target_directory_empty = directory_path.read_dir()?.next().is_none();
     if !force && !target_directory_empty {
-        // TODO: Check with storage::sync for unsynchronized changes. Improve feedback.
+        // TODO: Check with storage::sync for un-synchronized changes. Improve feedback.
         return Err(format_err!(
             "Setup directory is not empty ({}).\nUse --force to overwrite existing data.",
             &directory_path.display()
@@ -70,7 +70,7 @@ fn setup_git_repository(
                 .to_path_buf(),
         )?;
     } else {
-        log::debug!("Initialising git repository.");
+        log::debug!("Initializing git repository.");
         git2::Repository::init(&paths.root_directory)?;
     }
     Ok(())
@@ -162,7 +162,7 @@ pub fn setup(remote_repository_url: &Option<common::GitUrl>, force: bool) -> Res
 
 /// Returns true if setup is complete, otherwise returns false.
 ///
-/// Checks for existance of config file and for reviews directory.
+/// Checks for existence of config file and for reviews directory.
 pub fn is_complete() -> Result<bool> {
     let config_paths = common::fs::ConfigPaths::new()?;
     let data_paths = common::fs::DataPaths::new()?;

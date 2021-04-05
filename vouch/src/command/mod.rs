@@ -47,7 +47,7 @@ pub fn run_command(command: Command) -> Result<()> {
 pub enum Command {
     /// Initial user setup.
     ///
-    /// Initialise a local clone of a user's 'reviews' Git repository. Setup configuration settings.
+    /// Initialize a local clone of a user's 'reviews' Git repository. Setup configuration settings.
     #[structopt(name = "setup")]
     Setup(setup::Arguments),
 
@@ -59,7 +59,7 @@ pub enum Command {
     #[structopt(name = "review")]
     Review(review::Arguments),
 
-    /// Check dependancies against reviews.
+    /// Check dependencies against reviews.
     #[structopt(name = "check")]
     Check(check::Arguments),
 

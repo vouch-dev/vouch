@@ -6,7 +6,7 @@
 
 Software packages are usually used without review. Who's checked the code? Typically, no one but the author. Vouch is a review system designed to solve this problem.
 
-Vouch evaluates software dependancies using user generted micro-reviews. Even single line reviews become powerful when aggregated!
+Vouch evaluates software dependencies using user generated micro-reviews. Even single line reviews become powerful when aggregated!
 
 ## Getting Started
 
@@ -38,8 +38,8 @@ The sync command pulls new reviews from peers and publishes user generated revie
 
 ### Check
 
-Reviews created using Vouch can be used to evaluate software project dependancies. Vouch extensions can discover ecosystem specific dependancy definition files. For example, the Python extension parses `Pipfile.lock` files.
+Reviews created using Vouch can be used to evaluate software project dependencies. Vouch extensions can discover ecosystem specific dependency definition files. For example, the Python extension parses `Pipfile.lock` files.
 
-The `check` command generates an evaluation report of local project dependancies based on available reviews:
+The `check` command generates an evaluation report of local project dependencies based on available reviews:
 
 `vouch check`

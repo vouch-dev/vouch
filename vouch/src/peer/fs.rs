@@ -60,11 +60,11 @@ pub fn remove(peer_subtree: &Vec<common::Peer>, tx: &mut StoreTransaction) -> Re
     let peer = peer_subtree
         .last()
         .ok_or(format_err!("invalid peer_subtree"))?;
-    let imediate_parent_peer = peer_subtree
+    let immediate_parent_peer = peer_subtree
         .get(peer_subtree.len() - 2)
         .ok_or(format_err!("invalid peer_subtree"))?;
 
-    if imediate_parent_peer.is_root() {
+    if immediate_parent_peer.is_root() {
         remove_direct_follow(&peer, tx)?;
     } else {
         remove_indirect_follow(&peer_subtree)?;
@@ -102,7 +102,7 @@ pub fn merge_update(peer: &common::Peer, _tx: &mut StoreTransaction) -> Result<(
 
     let repo = git2::Repository::open(&peer_submodule_path)?;
 
-    // Dont re-fetch incase the fetch has changed since first discovering a new available update.
+    // Do not re-fetch incase the fetch has changed since first discovering a new available update.
     let fetch_head = repo.find_reference("FETCH_HEAD")?;
     let fetch_commit = repo.reference_to_annotated_commit(&fetch_head)?;
     let analysis = repo.merge_analysis(&[&fetch_commit])?;
@@ -113,10 +113,10 @@ pub fn merge_update(peer: &common::Peer, _tx: &mut StoreTransaction) -> Result<(
     );
 
     if analysis.0.is_fast_forward() {
-        let refname = "refs/heads/master";
-        let mut reference = repo.find_reference(&refname)?;
+        let reference_name = "refs/heads/master";
+        let mut reference = repo.find_reference(&reference_name)?;
         reference.set_target(fetch_commit.id(), "Fast-Forward")?;
-        repo.set_head(&refname)?;
+        repo.set_head(&reference_name)?;
         repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
     } else {
         return Err(format_err!(
@@ -142,10 +142,11 @@ fn remove_indirect_follow(peer_subtree: &Vec<common::Peer>) -> Result<()> {
     let paths = DataPaths::new()?;
     let peer_path = get_peer_path(&peer_subtree, &paths.root_directory)?;
 
-    let imediate_parent_subtree = peer_subtree[..=peer_subtree.len() - 2].into();
-    let imediate_parent_peer_path = get_peer_path(&imediate_parent_subtree, &paths.root_directory)?;
+    let immediate_parent_subtree = peer_subtree[..=peer_subtree.len() - 2].into();
+    let immediate_parent_peer_path =
+        get_peer_path(&immediate_parent_subtree, &paths.root_directory)?;
 
-    crate::common::fs::git_deinit_submodule(&peer_path, &imediate_parent_peer_path)?;
+    crate::common::fs::git_deinit_submodule(&peer_path, &immediate_parent_peer_path)?;
     Ok(())
 }
 

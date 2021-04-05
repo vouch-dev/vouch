@@ -4,7 +4,7 @@
 //! The number of data structures in this module should be minimized. The data structures
 //! should be as simple as possible.
 //!
-//! Print statements are prohibited whithin this module. Logging is allowed.
+//! Print statements are prohibited within this module. Logging is allowed.
 
 use serde;
 use std::hash::Hash;

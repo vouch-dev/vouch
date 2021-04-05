@@ -5,7 +5,7 @@ use crate::common;
 use crate::extension;
 use crate::store;
 
-mod dependancies;
+mod dependencies;
 mod report;
 mod specific;
 mod table;
@@ -25,7 +25,7 @@ pub struct Arguments {
     #[structopt(name = "package-version", requires("package-name"))]
     pub package_version: Option<String>,
 
-    /// Specify an extension for handling the package or dependancies.
+    /// Specify an extension for handling the package or dependencies.
     /// Example values: py, js, rs
     #[structopt(long = "extension", short = "e", name = "name")]
     pub extension_names: Option<Vec<String>>,
@@ -51,7 +51,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
             )?;
         }
         None => {
-            dependancies::report(&extension_names, &config, &tx)?;
+            dependencies::report(&extension_names, &config, &tx)?;
         }
     }
     Ok(())

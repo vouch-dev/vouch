@@ -3,30 +3,30 @@ use crate::review;
 use anyhow::Result;
 use prettytable::{self, cell};
 
-/// Generates and returns a table from a given extension dependancy review report.
-pub fn get(dependancy_reports: &Vec<report::DependancyReport>) -> Result<prettytable::Table> {
+/// Generates and returns a table from a given extension dependency review report.
+pub fn get(dependency_reports: &Vec<report::DependencyReport>) -> Result<prettytable::Table> {
     let mut table = prettytable::Table::new();
     table.set_titles(prettytable::row![c => "  ", "name", "version", "reviews", "notes"]);
     table.set_format(*prettytable::format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
 
-    let mut dependancy_reports = dependancy_reports.clone();
-    dependancy_reports.sort();
+    let mut dependency_reports = dependency_reports.clone();
+    dependency_reports.sort();
 
-    for dependancy in dependancy_reports {
-        let status_call: prettytable::Cell = dependancy.summary.clone().into();
-        let package_version = match &dependancy.version {
+    for dependency in dependency_reports {
+        let status_call: prettytable::Cell = dependency.summary.clone().into();
+        let package_version = match &dependency.version {
             Some(v) => v.as_str(),
             None => "",
         };
-        let review_count = match dependancy.review_count {
+        let review_count = match dependency.review_count {
             Some(v) => v.to_string(),
             None => "".to_string(),
         };
-        let note = get_note_cell(&dependancy);
+        let note = get_note_cell(&dependency);
 
         table.add_row(prettytable::Row::new(vec![
             status_call,
-            prettytable::Cell::new_align(&dependancy.name, prettytable::format::Alignment::LEFT),
+            prettytable::Cell::new_align(&dependency.name, prettytable::format::Alignment::LEFT),
             prettytable::Cell::new_align(&package_version, prettytable::format::Alignment::RIGHT),
             prettytable::Cell::new_align(&review_count, prettytable::format::Alignment::RIGHT),
             note,
@@ -35,14 +35,14 @@ pub fn get(dependancy_reports: &Vec<report::DependancyReport>) -> Result<prettyt
     Ok(table)
 }
 
-fn get_note_cell(dependancy_report: &report::DependancyReport) -> prettytable::Cell {
-    let note = match &dependancy_report.note {
+fn get_note_cell(dependency_report: &report::DependencyReport) -> prettytable::Cell {
+    let note = match &dependency_report.note {
         Some(v) => v.as_str(),
         None => "",
     };
     let mut note = prettytable::Cell::new_align(&note, prettytable::format::Alignment::LEFT);
 
-    if dependancy_report.summary == review::Summary::Fail {
+    if dependency_report.summary == review::Summary::Fail {
         note = note
             .with_style(prettytable::Attr::BackgroundColor(
                 prettytable::color::BRIGHT_RED,
@@ -56,7 +56,7 @@ fn get_note_cell(dependancy_report: &report::DependancyReport) -> prettytable::C
 
 impl From<review::Summary> for prettytable::Cell {
     fn from(summary: review::Summary) -> Self {
-        let lebel = match summary {
+        let label = match summary {
             review::Summary::Pass => " PASS ",
             review::Summary::Warn => " WARN ",
             review::Summary::Fail => " FAIL ",
@@ -68,7 +68,7 @@ impl From<review::Summary> for prettytable::Cell {
             review::Summary::Fail => prettytable::color::BRIGHT_RED,
         };
 
-        prettytable::Cell::new_align(lebel, prettytable::format::Alignment::CENTER)
+        prettytable::Cell::new_align(label, prettytable::format::Alignment::CENTER)
             .with_style(prettytable::Attr::BackgroundColor(background_color))
             .with_style(prettytable::Attr::ForegroundColor(
                 prettytable::color::BLACK,

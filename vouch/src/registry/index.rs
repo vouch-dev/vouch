@@ -87,17 +87,17 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Registry>> 
     Ok(registries)
 }
 
-/// Merge registires from incoming index into another index. Returns the newly merged registires.
+/// Merge registries from incoming index into another index. Returns the newly merged registries.
 pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<HashSet<Registry>> {
-    let existing_registires = get(&Fields::default(), &tx)?;
-    let incoming_registires = get(&Fields::default(), &incoming_tx)?;
+    let existing_registries = get(&Fields::default(), &tx)?;
+    let incoming_registries = get(&Fields::default(), &incoming_tx)?;
 
-    let mut new_registires = HashSet::new();
+    let mut new_registries = HashSet::new();
     for registry in
-        common::index::get_difference_sans_id(&incoming_registires, &existing_registires)?
+        common::index::get_difference_sans_id(&incoming_registries, &existing_registries)?
     {
         let registry = insert(registry.host_name.as_str(), &tx)?;
-        new_registires.insert(registry);
+        new_registries.insert(registry);
     }
-    Ok(new_registires)
+    Ok(new_registries)
 }

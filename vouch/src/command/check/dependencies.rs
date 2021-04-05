@@ -17,37 +17,37 @@ pub fn report(
     log::debug!("Current working directory: {}", working_directory.display());
 
     let mut definition_file_found = false;
-    let local_dependancies =
-        extension::identify_local_dependancies(&extensions, &working_directory)?;
-    for (i, (extension, dependancies)) in extensions
+    let local_dependencies =
+        extension::identify_local_dependencies(&extensions, &working_directory)?;
+    for (i, (extension, dependencies)) in extensions
         .iter()
-        .zip(local_dependancies.into_iter())
+        .zip(local_dependencies.into_iter())
         .enumerate()
     {
         log::info!(
-            "Inspecting dependancies supported by extension: {}",
+            "Inspecting dependencies supported by extension: {}",
             extension.name()
         );
-        let dependancies = match dependancies {
-            Ok(dependancies) => dependancies,
+        let dependencies = match dependencies {
+            Ok(dependencies) => dependencies,
             Err(error) => {
                 log::error!("Extension error: {}", error);
                 continue;
             }
         };
 
-        let dependancy_reports: Result<Vec<report::DependancyReport>> = dependancies
+        let dependency_reports: Result<Vec<report::DependencyReport>> = dependencies
             .into_iter()
-            .map(|dependancy| -> Result<report::DependancyReport> {
-                Ok(report::get_dependancy_report(&dependancy, &tx)?)
+            .map(|dependency| -> Result<report::DependencyReport> {
+                Ok(report::get_dependency_report(&dependency, &tx)?)
             })
             .collect();
-        let dependancy_reports = dependancy_reports?;
+        let dependency_reports = dependency_reports?;
 
-        log::info!("Number of dependancies found: {}", dependancy_reports.len());
-        if dependancy_reports.is_empty() {
+        log::info!("Number of dependencies found: {}", dependency_reports.len());
+        if dependency_reports.is_empty() {
             log::debug!(
-                "Extension {} did not identify any dependancies in the \
+                "Extension {} did not identify any dependencies in the \
             current working directory or parent directories.",
                 extension.name()
             );
@@ -56,7 +56,7 @@ pub fn report(
             definition_file_found = true;
         }
 
-        let table = table::get(&dependancy_reports)?;
+        let table = table::get(&dependency_reports)?;
         let inter_extension_padding = if i > 0 { "\n\n" } else { "" };
         println!(
             "{inter_extension_padding}Extension: {name}",

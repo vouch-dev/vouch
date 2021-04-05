@@ -2,7 +2,7 @@ use super::common;
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
-mod identify_local_dependancies;
+mod identify_local_dependencies;
 mod remote_package_metadata;
 mod static_data;
 
@@ -12,9 +12,9 @@ enum Command {
     #[structopt(name = "static-data")]
     StaticData,
 
-    /// Identify local dependancies.
-    #[structopt(name = "identify-local-dependancies")]
-    IdentifyLocalDependancies(identify_local_dependancies::Arguments),
+    /// Identify local dependencies.
+    #[structopt(name = "identify-local-dependencies")]
+    IdentifyLocalDependencies(identify_local_dependencies::Arguments),
 
     /// Get remote package metadata.
     #[structopt(name = "remote-package-metadata")]
@@ -30,8 +30,8 @@ fn run_command<T: common::Extension + std::fmt::Debug>(
             static_data::run_command(extension)?;
         }
 
-        Command::IdentifyLocalDependancies(args) => {
-            identify_local_dependancies::run_command(&args, extension)?;
+        Command::IdentifyLocalDependencies(args) => {
+            identify_local_dependencies::run_command(&args, extension)?;
         }
 
         Command::RemotePackageMetadata(args) => {
