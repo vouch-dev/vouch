@@ -73,10 +73,7 @@ impl vouch_lib::extension::Extension for PyExtension {
         package_name: &str,
         package_version: &str,
     ) -> Result<vouch_lib::extension::RemotePackageMetadata> {
-        // Query remote package registry for given package.
-        let registry_human_url = get_registry_human_url(&self, &package_name, &package_version)?;
-
-        // Currently, only one registry is supported. Therefore simply extract.
+        // Currently, only one registry is supported. Therefore simply select first.
         let registry_host_name = self
             .registries()
             .first()
@@ -87,6 +84,7 @@ impl vouch_lib::extension::Extension for PyExtension {
 
         let entry_json = get_registry_entry_json(&package_name)?;
         let archive_url = get_archive_url(&entry_json, &package_version)?;
+        let registry_human_url = get_registry_human_url(&self, &package_name, &package_version)?;
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             registry_host_name: registry_host_name,
