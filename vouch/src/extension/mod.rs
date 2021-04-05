@@ -42,26 +42,26 @@ fn select_search_result<'a>(
         &'a Box<dyn vouch_lib::extension::Extension>,
     )>,
 ) -> Result<vouch_lib::extension::RemotePackageMetadata> {
-    let multiple_results = extensions_search_results.len() > 1;
-
     let mut selection = Err(format_err!(
         "Extensions have failed to find package in remote package registries."
     ));
-    let mut extension_names = Vec::<_>::new();
+    let mut ok_extension_names = Vec::<_>::new();
 
     for (search_result, extension) in extensions_search_results.into_iter() {
-        extension_names.push(extension.name());
-        if search_result.is_ok() {
-            selection = search_result;
+        if search_result.is_err() {
+            continue;
         }
+
+        ok_extension_names.push(extension.name());
+        selection = search_result;
     }
 
-    if multiple_results {
+    if ok_extension_names.len() > 1 {
         Err(format_err!(
             "Found multiple matching candidate packages.\n\
         Please specify an extension using --extension (-e).\n\
         Matching extensions: {}",
-            extension_names.join(", ")
+            ok_extension_names.join(", ")
         ))
     } else {
         selection
