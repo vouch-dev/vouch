@@ -59,7 +59,7 @@ impl crate::common::HashSansId for Package {
     fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
         self.version.hash(state);
-        self.registry.hash(state);
+        self.registry.hash_sans_id(state);
         self.registry_human_url.hash(state);
         self.archive_url.hash(state);
         self.archive_hash.hash(state);
@@ -211,11 +211,12 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
 
 /// Merge packages from incoming index into another index. Returns the newly merged packages.
 pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<HashSet<Package>> {
-    let existing_packages = get(&Fields::default(), &tx)?;
     let incoming_packages = get(&Fields::default(), &incoming_tx)?;
+    let existing_packages = get(&Fields::default(), &tx)?;
 
     let mut new_packages = HashSet::new();
     for package in common::index::get_difference_sans_id(&incoming_packages, &existing_packages)? {
+        log::debug!("Inserting package: {:?}", package);
         let package = insert(
             &package.name,
             &package.version,
@@ -242,4 +243,45 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
         &[(":id", &id)],
     )?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Result;
+
+    #[test]
+    fn test_merge_correct_difference_set() -> Result<()> {
+        let existing_packages = maplit::hashset! {
+            Package {
+                id: 2,
+                name: "py-cpuinfo".to_string(),
+                version: "5.0.0".to_string(),
+                registry: registry::index::Registry {
+                    id: 2,
+                    host_name: "pypi.org".to_string()
+                },
+                registry_human_url: url::Url::parse( "https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
+                archive_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
+                archive_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
+            }
+        };
+        let incoming_packages = maplit::hashset! {
+            Package {
+                id: 3,
+                name: "py-cpuinfo".to_string(),
+                version: "5.0.0".to_string(),
+                registry: registry::index::Registry {
+                    id: 1,
+                    host_name: "pypi.org".to_string()
+                },
+                registry_human_url: url::Url::parse("https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
+                archive_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
+                archive_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
+            }
+        };
+        let result = common::index::get_difference_sans_id(&incoming_packages, &existing_packages)?;
+        assert!(result.is_empty());
+        Ok(())
+    }
 }
