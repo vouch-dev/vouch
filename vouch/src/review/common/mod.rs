@@ -38,11 +38,3 @@ impl PartialOrd for Review {
         Some(self.cmp(other))
     }
 }
-
-impl crate::common::HashSansId for Review {
-    fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.peer.hash(state);
-        self.package.hash(state);
-        self.comments.hash(state);
-    }
-}
