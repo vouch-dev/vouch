@@ -45,6 +45,16 @@ pub struct AddArguments {
 fn add(args: &AddArguments) -> Result<()> {
     let mut store = store::Store::from_root()?;
     let mut tx = store.get_transaction()?;
+    let config = common::config::Config::load()?;
+
+    if let Some(root_git_url) = config.core.root_git_url {
+        if args.git_url == root_git_url {
+            return Err(format_err!(
+                "Not adding peer: given git URL is already set as the root git URL. \
+            \nSee config field: core.root-git-url"
+            ));
+        }
+    }
 
     let mut root_peer =
         peer::index::get_root(&tx)?.ok_or(format_err!("Cant find root peer. Index corrupt."))?;
