@@ -69,9 +69,25 @@ fn setup_git_repository(
                 .unwrap_or(&std::path::PathBuf::from(r"/"))
                 .to_path_buf(),
         )?;
+        setup_top_level_peers(&paths)?;
     } else {
         log::debug!("Initializing git repository.");
         git2::Repository::init(&paths.root_directory)?;
+    }
+    Ok(())
+}
+
+fn setup_top_level_peers(paths: &common::fs::DataPaths) -> Result<()> {
+    let repository = git2::Repository::open(&paths.root_directory)?;
+    let submodules = repository.submodules()?;
+
+    for submodule in submodules {
+        let path = submodule.path();
+        log::debug!("Updating top level peer submodule: {}", path.display());
+        common::fs::git(
+            vec!["submodule", "update", "--init", "--depth", "1"],
+            &paths.root_directory.join(path),
+        )?;
     }
     Ok(())
 }
