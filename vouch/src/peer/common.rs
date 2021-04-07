@@ -66,8 +66,6 @@ impl crate::common::HashSansId for Peer {
     fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
         self.alias.hash(state);
         self.git_url.hash(state);
-        self.parent_id.hash(state);
-        self.child_peer_ids.hash(state);
     }
 }
 
