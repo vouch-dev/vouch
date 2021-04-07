@@ -44,30 +44,30 @@ pub fn get_root_database() -> Result<rusqlite::Connection> {
     Ok(rusqlite::Connection::open(paths.index_file)?)
 }
 
-pub fn get_peer_database(peer_subtree: &Vec<common::Peer>) -> Result<rusqlite::Connection> {
+pub fn get_peer_database(peer_branch: &Vec<common::Peer>) -> Result<rusqlite::Connection> {
     let root_peer_paths = DataPaths::new()?;
-    let peer_path = get_peer_path(&peer_subtree, &root_peer_paths.root_directory)?;
+    let peer_path = get_peer_path(&peer_branch, &root_peer_paths.root_directory)?;
     let paths = DataPaths::from_root_directory(&peer_path)?;
     Ok(rusqlite::Connection::open(paths.index_file)?)
 }
 
-pub fn remove(peer_subtree: &Vec<common::Peer>, tx: &mut StoreTransaction) -> Result<()> {
+pub fn remove(peer_branch: &Vec<common::Peer>, tx: &mut StoreTransaction) -> Result<()> {
     assert!(
-        peer_subtree.len() >= 2,
-        "Cannot remove root peer. First element in subtree must be root peer."
+        peer_branch.len() >= 2,
+        "Cannot remove root peer. First element in branch must be root peer."
     );
 
-    let peer = peer_subtree
+    let peer = peer_branch
         .last()
-        .ok_or(format_err!("invalid peer_subtree"))?;
-    let immediate_parent_peer = peer_subtree
-        .get(peer_subtree.len() - 2)
-        .ok_or(format_err!("invalid peer_subtree"))?;
+        .ok_or(format_err!("invalid peer branch"))?;
+    let parent_peer = peer_branch
+        .get(peer_branch.len() - 2)
+        .ok_or(format_err!("invalid peer branch"))?;
 
-    if immediate_parent_peer.is_root() {
+    if parent_peer.is_root() {
         remove_direct_follow(&peer, tx)?;
     } else {
-        remove_indirect_follow(&peer_subtree)?;
+        remove_indirect_follow(&peer_branch)?;
     }
 
     Ok(())
@@ -138,24 +138,23 @@ fn remove_direct_follow(peer: &common::Peer, _tx: &mut StoreTransaction) -> Resu
     Ok(())
 }
 
-fn remove_indirect_follow(peer_subtree: &Vec<common::Peer>) -> Result<()> {
+fn remove_indirect_follow(peer_branch: &Vec<common::Peer>) -> Result<()> {
     let paths = DataPaths::new()?;
-    let peer_path = get_peer_path(&peer_subtree, &paths.root_directory)?;
+    let peer_path = get_peer_path(&peer_branch, &paths.root_directory)?;
 
-    let immediate_parent_subtree = peer_subtree[..=peer_subtree.len() - 2].into();
-    let immediate_parent_peer_path =
-        get_peer_path(&immediate_parent_subtree, &paths.root_directory)?;
+    let parent_branch = peer_branch[..=peer_branch.len() - 2].into();
+    let parent_branch_path = get_peer_path(&parent_branch, &paths.root_directory)?;
 
-    crate::common::fs::git_deinit_submodule(&peer_path, &immediate_parent_peer_path)?;
+    crate::common::fs::git_deinit_submodule(&peer_path, &parent_branch_path)?;
     Ok(())
 }
 
 pub fn get_peer_path(
-    peer_subtree: &Vec<common::Peer>,
+    peer_branch: &Vec<common::Peer>,
     root_directory: &std::path::PathBuf,
 ) -> Result<std::path::PathBuf> {
     let mut peer_path = std::path::PathBuf::from("/");
-    for peer in peer_subtree {
+    for peer in peer_branch {
         if peer.is_root() {
             peer_path = peer_path.join(&root_directory);
         } else {
@@ -174,8 +173,8 @@ mod tests {
     use std::convert::TryFrom;
 
     #[test]
-    fn test_three_peer_subtree_derived_correct_path() -> Result<()> {
-        let peer_subtree = vec![
+    fn test_three_peer_branch_derived_correct_path() -> Result<()> {
+        let peer_branch = vec![
             common::Peer {
                 alias: "root".to_string(),
                 git_url: crate::common::GitUrl::try_from("https://github.com/user_1/reviews_1")?,
@@ -193,7 +192,7 @@ mod tests {
             },
         ];
         let root_directory = std::path::PathBuf::from("/vouch");
-        let result = get_peer_path(&peer_subtree, &root_directory)?;
+        let result = get_peer_path(&peer_branch, &root_directory)?;
         let expected = std::path::PathBuf::from(
             "/vouch/peers/github.com/user_2/reviews_2/peers/gitlab.com/user_3/reviews_3",
         );

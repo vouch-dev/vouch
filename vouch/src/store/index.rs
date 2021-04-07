@@ -24,9 +24,9 @@ impl Index {
     }
 
     /// Load the index of a given peer.
-    pub fn from_peer(peer_subtree: &Vec<peer::Peer>) -> Result<Self> {
+    pub fn from_peer(peer_branch: &Vec<peer::Peer>) -> Result<Self> {
         Ok(Self {
-            db: peer::fs::get_peer_database(&peer_subtree)?,
+            db: peer::fs::get_peer_database(&peer_branch)?,
         })
     }
 

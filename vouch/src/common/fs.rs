@@ -148,7 +148,7 @@ pub fn git_remove_submodule(
 /// Deinit a git submodule.
 pub fn git_deinit_submodule(
     submodule_path: &std::path::PathBuf,
-    root_directory: &std::path::PathBuf,
+    working_directory: &std::path::PathBuf,
 ) -> Result<()> {
     let submodule_path = submodule_path.to_str().ok_or(format_err!(
         "Could not parse submodule path: {}",
@@ -157,7 +157,7 @@ pub fn git_deinit_submodule(
 
     std::process::Command::new("git")
         .args(vec!["submodule", "deinit", "-f", submodule_path])
-        .current_dir(&root_directory)
+        .current_dir(&working_directory)
         .status()?;
 
     Ok(())

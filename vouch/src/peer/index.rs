@@ -261,14 +261,12 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
     Ok(())
 }
 
-pub fn get_root_to_peer_subtree(
-    peer: &common::Peer,
-    tx: &StoreTransaction,
-) -> Result<Vec<common::Peer>> {
-    let mut subtree = std::collections::VecDeque::new();
+/// Given a peer, returns the corresponding root to peer branch.
+pub fn get_peer_branch(peer: &common::Peer, tx: &StoreTransaction) -> Result<Vec<common::Peer>> {
+    let mut branch = std::collections::VecDeque::new();
     let mut current_peer = peer.clone();
     loop {
-        subtree.push_front(current_peer.clone());
+        branch.push_front(current_peer.clone());
         match current_peer.parent_id {
             Some(parent_id) => {
                 current_peer = get(
@@ -291,7 +289,7 @@ pub fn get_root_to_peer_subtree(
             }
         }
     }
-    Ok(subtree.into())
+    Ok(branch.into())
 }
 
 /// Merge peers from incoming index into another index. Returns the newly merged peers.
@@ -441,7 +439,7 @@ fn get_peer_subtrees(
         }
     };
 
-    let mut incomplete_subtrees = std::collections::VecDeque::<Vec<common::Peer>>::new();
+    let mut incomplete_subtrees = std::collections::VecDeque::<_>::new();
     incomplete_subtrees.push_back(starting_subtree);
 
     loop {
