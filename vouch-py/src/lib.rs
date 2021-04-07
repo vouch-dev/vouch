@@ -13,7 +13,7 @@ pub struct PyExtension {
     registry_human_url_template_: String,
 }
 
-impl vouch_lib::extension::Extension for PyExtension {
+impl vouch_lib::extension::FromLib for PyExtension {
     fn new() -> Self {
         Self {
             name_: "py".to_string(),
@@ -24,14 +24,9 @@ impl vouch_lib::extension::Extension for PyExtension {
                 "https://pypi.org/pypi/{{package_name}}/{{package_version}}/".to_string(),
         }
     }
+}
 
-    fn from_process(
-        _process_path: &std::path::PathBuf,
-        _extension_config_path: &std::path::PathBuf,
-    ) -> Result<Self> {
-        unimplemented!();
-    }
-
+impl vouch_lib::extension::Extension for PyExtension {
     fn name(&self) -> String {
         self.name_.clone()
     }

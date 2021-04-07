@@ -12,7 +12,7 @@ pub struct JsExtension {
     registry_human_url_template_: String,
 }
 
-impl vouch_lib::extension::Extension for JsExtension {
+impl vouch_lib::extension::FromLib for JsExtension {
     fn new() -> Self {
         Self {
             name_: "js".to_string(),
@@ -22,14 +22,9 @@ impl vouch_lib::extension::Extension for JsExtension {
                 "https://www.npmjs.com/package/{{package_name}}/v/{{package_version}}".to_string(),
         }
     }
+}
 
-    fn from_process(
-        _process_path: &std::path::PathBuf,
-        _extension_config_path: &std::path::PathBuf,
-    ) -> Result<Self> {
-        unimplemented!();
-    }
-
+impl vouch_lib::extension::Extension for JsExtension {
     fn name(&self) -> String {
         self.name_.clone()
     }

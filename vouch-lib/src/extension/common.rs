@@ -31,11 +31,14 @@ pub struct RemotePackageMetadata {
     pub archive_url: String,
 }
 
-pub trait Extension: Send + Sync {
+pub trait FromLib: Send + Sync {
+    /// Initialize extension from a library.
     fn new() -> Self
     where
         Self: Sized;
+}
 
+pub trait FromProcess: Send + Sync {
     /// Initialize extension from a process.
     fn from_process(
         process_path: &std::path::PathBuf,
@@ -43,7 +46,9 @@ pub trait Extension: Send + Sync {
     ) -> Result<Self>
     where
         Self: Sized;
+}
 
+pub trait Extension: Send + Sync {
     fn name(&self) -> String;
     fn registries(&self) -> Vec<String>;
 

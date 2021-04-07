@@ -1,4 +1,4 @@
-use vouch_lib::extension::Extension;
+use vouch_lib::extension::FromLib;
 use vouch_py_lib;
 
 fn main() {

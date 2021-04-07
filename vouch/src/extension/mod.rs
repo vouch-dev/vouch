@@ -1,7 +1,7 @@
 use anyhow::{format_err, Result};
 use crossbeam_utils;
 use std::collections::{BTreeSet, HashMap};
-use vouch_lib::extension::Extension;
+use vouch_lib::extension::{FromLib, FromProcess};
 
 use crate::common;
 
@@ -115,8 +115,7 @@ pub fn get_all_extensions() -> Result<Vec<Box<dyn vouch_lib::extension::Extensio
         Box::new(vouch_js_lib::JsExtension::new()) as Box<dyn vouch_lib::extension::Extension>,
     ];
 
-    let process_extensions = get_process_extensions()?;
-    for extension in process_extensions.into_iter() {
+    for extension in get_process_extensions()? {
         all_extensions.push(Box::new(extension) as Box<dyn vouch_lib::extension::Extension>);
     }
 
@@ -143,8 +142,6 @@ pub fn get_enabled_extensions(
 
     Ok(extensions)
 }
-
-// pub fn get_enabled_extensions_by_name()
 
 /// Update config with current set of extensions.
 pub fn update_config(config: &mut common::config::Config) -> Result<()> {

@@ -15,14 +15,7 @@ pub struct ProcessExtension {
     registry_host_names_: Vec<String>,
 }
 
-impl common::Extension for ProcessExtension {
-    fn new() -> Self
-    where
-        Self: Sized,
-    {
-        unimplemented!("Initialize this type with ProcessExtension::from_process.");
-    }
-
+impl common::FromProcess for ProcessExtension {
     fn from_process(
         process_path: &std::path::PathBuf,
         extension_config_path: &std::path::PathBuf,
@@ -57,7 +50,9 @@ impl common::Extension for ProcessExtension {
             registry_host_names_: static_data.registry_host_names,
         })
     }
+}
 
+impl common::Extension for ProcessExtension {
     fn name(&self) -> String {
         self.name_.clone()
     }
