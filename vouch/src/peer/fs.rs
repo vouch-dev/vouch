@@ -26,6 +26,7 @@ pub fn add(git_url: &crate::common::GitUrl, _tx: &mut StoreTransaction) -> Resul
     let peers_directory_name = paths.peers_directory.strip_prefix(&paths.root_directory)?;
     let submodule_relative_path = peers_directory_name.join(submodule_relative_path);
 
+    // TODO: Set submodule depth to 1.
     let args = vec![
         "submodule",
         "add",
@@ -73,11 +74,12 @@ pub fn remove(peer_branch: &Vec<common::Peer>, tx: &mut StoreTransaction) -> Res
     Ok(())
 }
 
-/// Given a directly followed peer, fetches from origin/master.
+/// Given a top level (directly followed) peer, fetches from origin/master.
 /// Returns true if a remote update is available.
 ///
 /// See: https://stackoverflow.com/questions/58768910/how-to-perform-git-pull-with-the-rust-git2-crate
 pub fn fetch_update(peer: &common::Peer, _tx: &mut StoreTransaction) -> Result<bool> {
+    log::debug!("Fetching updates for top level peer: {}", peer.git_url);
     let paths = DataPaths::new()?;
 
     let submodule_relative_path = get_submodule_storage_relative_path(&peer.git_url)?;
