@@ -26,10 +26,11 @@ pub fn add(git_url: &crate::common::GitUrl, _tx: &mut StoreTransaction) -> Resul
     let peers_directory_name = paths.peers_directory.strip_prefix(&paths.root_directory)?;
     let submodule_relative_path = peers_directory_name.join(submodule_relative_path);
 
-    // TODO: Set submodule depth to 1.
     let args = vec![
         "submodule",
         "add",
+        "--depth",
+        "1",
         git_url.as_str(),
         submodule_relative_path.to_str().ok_or(format_err!(
             "Could not parse submodule path: {:?}",
