@@ -1,33 +1,8 @@
 use anyhow::Result;
 
-use crate::common::{self, StoreTransaction};
+use super::common;
+use crate::common::StoreTransaction;
 use std::collections::HashSet;
-use std::hash::Hash;
-
-#[derive(
-    Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
-)]
-pub struct Registry {
-    #[serde(skip)]
-    pub id: common::index::ID,
-    pub host_name: String,
-}
-
-impl crate::common::HashSansId for Registry {
-    fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.host_name.hash(state);
-    }
-}
-
-impl common::index::Identify for Registry {
-    fn id(&self) -> common::index::ID {
-        self.id
-    }
-
-    fn id_mut(&mut self) -> &mut common::index::ID {
-        &mut self.id
-    }
-}
 
 pub fn setup(tx: &StoreTransaction) -> Result<()> {
     tx.index_tx().execute(
@@ -40,7 +15,7 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
     Ok(())
 }
 
-pub fn insert(host_name: &str, tx: &StoreTransaction) -> Result<Registry> {
+pub fn insert(host_name: &str, tx: &StoreTransaction) -> Result<common::Registry> {
     tx.index_tx().execute_named(
         "INSERT INTO registry (host_name)
             VALUES (
@@ -50,7 +25,7 @@ pub fn insert(host_name: &str, tx: &StoreTransaction) -> Result<Registry> {
             ":host_name": host_name
         },
     )?;
-    Ok(Registry {
+    Ok(common::Registry {
         id: tx.index_tx().last_insert_rowid(),
         host_name: host_name.to_string(),
     })
@@ -62,7 +37,7 @@ pub struct Fields<'a> {
     pub host_name: Option<&'a str>,
 }
 
-pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Registry>> {
+pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<common::Registry>> {
     let id =
         crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
     let host_name = crate::common::index::get_like_clause_param(fields.host_name);
@@ -79,7 +54,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Registry>> 
     let mut rows = statement.query_named(&[(":id", &id), (":host_name", &host_name)])?;
     let mut registries = HashSet::new();
     while let Some(row) = rows.next()? {
-        registries.insert(Registry {
+        registries.insert(common::Registry {
             id: row.get(0)?,
             host_name: row.get(1)?,
         });
@@ -88,13 +63,16 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Registry>> 
 }
 
 /// Merge registries from incoming index into another index. Returns the newly merged registries.
-pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<HashSet<Registry>> {
+pub fn merge(
+    incoming_tx: &StoreTransaction,
+    tx: &StoreTransaction,
+) -> Result<HashSet<common::Registry>> {
     let existing_registries = get(&Fields::default(), &tx)?;
     let incoming_registries = get(&Fields::default(), &incoming_tx)?;
 
     let mut new_registries = HashSet::new();
     for registry in
-        common::index::get_difference_sans_id(&incoming_registries, &existing_registries)?
+        crate::common::index::get_difference_sans_id(&incoming_registries, &existing_registries)?
     {
         let registry = insert(registry.host_name.as_str(), &tx)?;
         new_registries.insert(registry);

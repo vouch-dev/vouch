@@ -12,7 +12,7 @@ pub struct Package {
 
     pub name: String,
     pub version: String,
-    pub registry: registry::index::Registry,
+    pub registry: registry::Registry,
 
     pub registry_human_url: url::Url,
 
@@ -257,7 +257,7 @@ mod tests {
                 id: 2,
                 name: "py-cpuinfo".to_string(),
                 version: "5.0.0".to_string(),
-                registry: registry::index::Registry {
+                registry: registry::Registry {
                     id: 2,
                     host_name: "pypi.org".to_string()
                 },
@@ -271,7 +271,7 @@ mod tests {
                 id: 3,
                 name: "py-cpuinfo".to_string(),
                 version: "5.0.0".to_string(),
-                registry: registry::index::Registry {
+                registry: registry::Registry {
                     id: 1,
                     host_name: "pypi.org".to_string()
                 },
