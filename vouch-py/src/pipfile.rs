@@ -1,42 +1,24 @@
 use anyhow::{format_err, Context, Result};
 use std::collections::HashSet;
 
-struct ParsedVersion {
-    version: Option<String>,
-    parse_error: bool,
-    missing: bool,
-}
-
 static HOST_NAME: &str = "pypi.org";
 
 /// Parse and clean package version string.
 ///
 /// Returns a structure which details common errors.
-fn get_parsed_version(version: &Option<&str>) -> Result<ParsedVersion> {
+fn get_parsed_version(version: &Option<&str>) -> vouch_lib::extension::common::VersionParseResult {
     let cleaned_version = match version {
         Some(v) => match v.strip_prefix("==") {
             Some(v) => v,
             None => {
-                return Ok(ParsedVersion {
-                    version: version.and_then(|v| Some(v.to_string())),
-                    parse_error: true,
-                    missing: false,
-                });
+                return Err(vouch_lib::extension::common::VersionError::from_parse_error(v));
             }
         },
         None => {
-            return Ok(ParsedVersion {
-                version: version.and_then(|v| Some(v.to_string())),
-                parse_error: true,
-                missing: true,
-            });
+            return Err(vouch_lib::extension::common::VersionError::from_missing_version());
         }
     };
-    Ok(ParsedVersion {
-        version: Some(cleaned_version.to_string()),
-        parse_error: false,
-        missing: false,
-    })
+    Ok(cleaned_version.to_string())
 }
 
 fn parse_section(
@@ -44,13 +26,11 @@ fn parse_section(
 ) -> Result<HashSet<vouch_lib::extension::Dependency>> {
     let mut dependencies = HashSet::new();
     for (package_name, entry) in json_section {
-        let version_parse_result = get_parsed_version(&entry["version"].as_str())?;
+        let version_parse_result = get_parsed_version(&entry["version"].as_str());
 
         dependencies.insert(vouch_lib::extension::Dependency {
             name: package_name.clone(),
-            version: version_parse_result.version,
-            version_parse_error: version_parse_result.parse_error,
-            missing_version: version_parse_result.missing,
+            version: version_parse_result,
         });
     }
     Ok(dependencies)

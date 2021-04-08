@@ -1,4 +1,4 @@
-use anyhow::{format_err, Result};
+use anyhow::Result;
 
 use crate::common::StoreTransaction;
 use crate::review;
@@ -18,24 +18,18 @@ pub fn get_dependency_report(
     registry_host_name: &str,
     tx: &StoreTransaction,
 ) -> Result<DependencyReport> {
-    if dependency.version_parse_error || dependency.version.is_none() {
-        let note = match &dependency.version {
-            Some(v) => format!("Failed to parse version: {}", v).to_string(),
-            None => "Version not found.".to_string(),
-        };
-
-        return Ok(DependencyReport {
-            summary: review::Summary::Warn,
-            name: dependency.name.clone(),
-            version: None,
-            review_count: None,
-            note: Some(note),
-        });
-    }
-    let package_version = dependency.version.clone().ok_or(format_err!(
-        "Code error: dependency.version_parse_error is false \
-        but dependency.version is None."
-    ))?;
+    let package_version = match &dependency.version {
+        Ok(version) => version.clone(),
+        Err(error) => {
+            return Ok(DependencyReport {
+                summary: review::Summary::Warn,
+                name: dependency.name.clone(),
+                version: None,
+                review_count: None,
+                note: Some(error.message()),
+            });
+        }
+    };
 
     let reviews = review::index::get(
         &review::index::Fields {
