@@ -1,3 +1,4 @@
+pub mod common;
 pub mod index;
 
-pub use index::Package;
+pub use common::Package;

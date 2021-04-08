@@ -1,74 +1,13 @@
-use super::super::common;
-use crate::common::StoreTransaction;
-use crate::registry;
 use anyhow::{format_err, Result};
 use std::collections::HashSet;
-use std::hash::Hash;
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct Package {
-    #[serde(skip)]
-    pub id: common::index::ID,
-
-    pub name: String,
-    pub version: String,
-    pub registry: registry::Registry,
-
-    pub registry_human_url: url::Url,
-
-    pub archive_url: url::Url,
-    pub archive_hash: String,
-}
-
-impl Ord for Package {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        (
-            &self.name,
-            &self.version,
-            &self.registry,
-            &self.archive_hash,
-            &self.id,
-        )
-            .cmp(&(
-                &other.name,
-                &other.version,
-                &other.registry,
-                &other.archive_hash,
-                &other.id,
-            ))
-    }
-}
-
-impl PartialOrd for Package {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl common::index::Identify for Package {
-    fn id(&self) -> common::index::ID {
-        self.id
-    }
-
-    fn id_mut(&mut self) -> &mut common::index::ID {
-        &mut self.id
-    }
-}
-
-impl crate::common::HashSansId for Package {
-    fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-        self.version.hash(state);
-        self.registry.hash_sans_id(state);
-        self.registry_human_url.hash(state);
-        self.archive_url.hash(state);
-        self.archive_hash.hash(state);
-    }
-}
+use super::common;
+use crate::common::StoreTransaction;
+use crate::registry;
 
 #[derive(Debug, Default)]
 pub struct Fields<'a> {
-    pub id: Option<common::index::ID>,
+    pub id: Option<crate::common::index::ID>,
     pub package_name: Option<&'a str>,
     pub package_version: Option<&'a str>,
     pub registry_host_name: Option<&'a str>,
@@ -102,7 +41,7 @@ pub fn insert(
     archive_hash: &str,
     registry_host_name: &str,
     tx: &StoreTransaction,
-) -> Result<Package> {
+) -> Result<common::Package> {
     let registry = match registry::index::get(
         &registry::index::Fields {
             host_name: Some(registry_host_name),
@@ -145,7 +84,7 @@ pub fn insert(
             ":archive_hash": archive_hash,
         },
     )?;
-    Ok(Package {
+    Ok(common::Package {
         id: tx.index_tx().last_insert_rowid(),
         name: package_name.to_string(),
         version: package_version.to_string(),
@@ -156,11 +95,12 @@ pub fn insert(
     })
 }
 
-pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
-    let id = common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
-    let package_name = common::index::get_like_clause_param(fields.package_name);
-    let package_version = common::index::get_like_clause_param(fields.package_version);
-    let registry_host_name = common::index::get_like_clause_param(fields.registry_host_name);
+pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<common::Package>> {
+    let id =
+        crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
+    let package_name = crate::common::index::get_like_clause_param(fields.package_name);
+    let package_version = crate::common::index::get_like_clause_param(fields.package_version);
+    let registry_host_name = crate::common::index::get_like_clause_param(fields.registry_host_name);
 
     let mut statement = tx.index_tx().prepare(
         r"
@@ -183,7 +123,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
     ])?;
     let mut packages = HashSet::new();
     while let Some(row) = rows.next()? {
-        let registry_id: common::index::ID = row.get(3)?;
+        let registry_id: crate::common::index::ID = row.get(3)?;
         let registry = registry::index::get(
             &registry::index::Fields {
                 id: Some(registry_id),
@@ -195,7 +135,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
         .next()
         .ok_or(format_err!("Failed to find registry for package.",))?;
 
-        let package = Package {
+        let package = common::Package {
             id: row.get(0)?,
             name: row.get(1)?,
             version: row.get(2)?,
@@ -210,12 +150,17 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<Package>> {
 }
 
 /// Merge packages from incoming index into another index. Returns the newly merged packages.
-pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<HashSet<Package>> {
+pub fn merge(
+    incoming_tx: &StoreTransaction,
+    tx: &StoreTransaction,
+) -> Result<HashSet<common::Package>> {
     let incoming_packages = get(&Fields::default(), &incoming_tx)?;
     let existing_packages = get(&Fields::default(), &tx)?;
 
     let mut new_packages = HashSet::new();
-    for package in common::index::get_difference_sans_id(&incoming_packages, &existing_packages)? {
+    for package in
+        crate::common::index::get_difference_sans_id(&incoming_packages, &existing_packages)?
+    {
         log::debug!("Inserting package: {:?}", package);
         let package = insert(
             &package.name,
@@ -232,7 +177,8 @@ pub fn merge(incoming_tx: &StoreTransaction, tx: &StoreTransaction) -> Result<Ha
 }
 
 pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
-    let id = common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
+    let id =
+        crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
     tx.index_tx().execute_named(
         r"
         DELETE
@@ -253,7 +199,7 @@ mod tests {
     #[test]
     fn test_merge_correct_difference_set() -> Result<()> {
         let existing_packages = maplit::hashset! {
-            Package {
+            common::Package {
                 id: 2,
                 name: "py-cpuinfo".to_string(),
                 version: "5.0.0".to_string(),
@@ -267,7 +213,7 @@ mod tests {
             }
         };
         let incoming_packages = maplit::hashset! {
-            Package {
+            common::Package {
                 id: 3,
                 name: "py-cpuinfo".to_string(),
                 version: "5.0.0".to_string(),
@@ -280,7 +226,8 @@ mod tests {
                 archive_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
             }
         };
-        let result = common::index::get_difference_sans_id(&incoming_packages, &existing_packages)?;
+        let result =
+            crate::common::index::get_difference_sans_id(&incoming_packages, &existing_packages)?;
         assert!(result.is_empty());
         Ok(())
     }
