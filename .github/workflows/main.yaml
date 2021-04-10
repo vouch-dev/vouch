@@ -40,6 +40,7 @@ jobs:
     steps:
       - name: Get version from tag
         id: get_version
+        shell: bash
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
 
       - uses: actions/checkout@v2
