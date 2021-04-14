@@ -377,15 +377,24 @@ mod tests {
     use super::*;
     use crate::package;
     use crate::peer;
+    use crate::registry;
 
     fn get_package(unique_tag: &str, tx: &StoreTransaction) -> Result<package::Package> {
+        let registry = registry::index::insert(
+            "test_registry_host_name",
+            &url::Url::parse("http://localhost/test_registry_human_url")?,
+            &url::Url::parse(&format!(
+                "http://localhost/test_archive_url_{unique_tag}",
+                unique_tag = unique_tag
+            ))?,
+            &tx,
+        )?;
+
         Ok(package::index::insert(
             &format!("test_package_name_{unique_tag}", unique_tag = unique_tag),
             "test_package_version",
-            &url::Url::parse("http://localhost/test_registry_human_url")?,
-            &url::Url::parse("http://localhost/test_archive_url")?,
+            &registry,
             "test_source_code_hash",
-            "test_registry_host_name",
             &tx,
         )?)
     }
@@ -417,7 +426,7 @@ mod tests {
             )?;
 
             let expected = maplit::btreeset! {review_1, review_2};
-            let result: std::collections::BTreeSet<common::Review> =
+            let result: std::collections::BTreeSet<_> =
                 get(&Fields::default(), &tx)?.into_iter().collect();
             assert_eq!(result, expected);
             Ok(())

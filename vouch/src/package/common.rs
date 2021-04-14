@@ -10,10 +10,6 @@ pub struct Package {
     pub name: String,
     pub version: String,
     pub registry: registry::Registry,
-
-    pub registry_human_url: url::Url,
-
-    pub archive_url: url::Url,
     pub archive_hash: String,
 }
 
@@ -57,8 +53,6 @@ impl crate::common::HashSansId for Package {
         self.name.hash(state);
         self.version.hash(state);
         self.registry.hash_sans_id(state);
-        self.registry_human_url.hash(state);
-        self.archive_url.hash(state);
         self.archive_hash.hash(state);
     }
 }

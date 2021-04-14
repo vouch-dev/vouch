@@ -8,6 +8,7 @@ use crate::common;
 use crate::extension;
 use crate::package;
 use crate::peer;
+use crate::registry;
 use crate::review;
 use crate::store;
 
@@ -189,7 +190,7 @@ fn setup_existing_review(
         &review.package.name,
         &review.package.version,
         &review.package.registry.host_name,
-        &review.package.archive_url,
+        &review.package.registry.archive_url,
     )?;
     Ok(Some((review.clone(), workspace_directory)))
 }
@@ -294,18 +295,23 @@ fn ensure_package_setup(
                 &package.name,
                 &package.version,
                 &package.registry.host_name,
-                &package.archive_url,
+                &package.registry.archive_url,
             )?;
             (package, workspace_directory)
         }
         None => {
-            let registry_human_url = url::Url::parse(&remote_package_metadata.registry_human_url)?;
-            let archive_url = url::Url::parse(&remote_package_metadata.archive_url)?;
+            let registry = registry::index::ensure(
+                &remote_package_metadata.registry_host_name,
+                &url::Url::parse(&remote_package_metadata.registry_human_url)?,
+                &url::Url::parse(&remote_package_metadata.archive_url)?,
+                &tx,
+            )?;
+
             let (workspace_directory, archive_hash) = review::workspace::ensure(
                 &package_name,
                 &package_version,
-                &remote_package_metadata.registry_host_name,
-                &archive_url,
+                &registry.host_name,
+                &registry.archive_url,
             )?;
             let archive_hash = archive_hash.ok_or(format_err!(
                 "New package object is being added to index but archive_hash is None. \
@@ -315,12 +321,13 @@ fn ensure_package_setup(
             let package = package::index::insert(
                 &package_name,
                 &package_version,
-                &registry_human_url,
-                &archive_url,
+                &registry,
                 &archive_hash,
-                &remote_package_metadata.registry_host_name,
                 &tx,
             )?;
+
+            // TODO: Only cleanup archive after package insertion records archive hash.
+
             (package, workspace_directory)
         }
     };
