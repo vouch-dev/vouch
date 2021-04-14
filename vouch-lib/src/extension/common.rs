@@ -42,7 +42,7 @@ pub struct DependenciesSpec {
 #[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RemotePackageMetadata {
     pub registry_host_name: String,
-    pub registry_human_url: String,
+    pub human_url: String,
     pub archive_url: String,
 }
 

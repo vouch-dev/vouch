@@ -302,7 +302,7 @@ fn ensure_package_setup(
         None => {
             let registry = registry::index::ensure(
                 &remote_package_metadata.registry_host_name,
-                &url::Url::parse(&remote_package_metadata.registry_human_url)?,
+                &url::Url::parse(&remote_package_metadata.human_url)?,
                 &url::Url::parse(&remote_package_metadata.archive_url)?,
                 &tx,
             )?;

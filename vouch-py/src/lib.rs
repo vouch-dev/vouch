@@ -81,11 +81,11 @@ impl vouch_lib::extension::Extension for PyExtension {
 
         let entry_json = get_registry_entry_json(&package_name)?;
         let archive_url = get_archive_url(&entry_json, &package_version)?;
-        let registry_human_url = get_registry_human_url(&self, &package_name, &package_version)?;
+        let human_url = get_registry_human_url(&self, &package_name, &package_version)?;
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             registry_host_name: registry_host_name,
-            registry_human_url: registry_human_url.to_string(),
+            human_url: human_url.to_string(),
             archive_url: archive_url.to_string(),
         })
     }
@@ -98,14 +98,14 @@ fn get_registry_human_url(
 ) -> Result<url::Url> {
     // Example return value: https://pypi.org/pypi/numpy/1.18.5/
     let handlebars_registry = handlebars::Handlebars::new();
-    let registry_human_url = handlebars_registry.render_template(
+    let human_url = handlebars_registry.render_template(
         &extension.registry_human_url_template_,
         &maplit::btreemap! {
             "package_name" => package_name,
             "package_version" => package_version,
         },
     )?;
-    Ok(url::Url::parse(registry_human_url.as_str())?)
+    Ok(url::Url::parse(human_url.as_str())?)
 }
 
 fn get_registry_entry_json(package_name: &str) -> Result<serde_json::Value> {

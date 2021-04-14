@@ -7,14 +7,14 @@ pub struct Registry {
     #[serde(skip)]
     pub id: crate::common::index::ID,
     pub host_name: String,
-    pub registry_human_url: url::Url,
+    pub human_url: url::Url,
     pub archive_url: url::Url,
 }
 
 impl crate::common::HashSansId for Registry {
     fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
         self.host_name.hash(state);
-        self.registry_human_url.hash(state);
+        self.human_url.hash(state);
         self.archive_url.hash(state);
     }
 }

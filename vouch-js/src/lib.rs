@@ -69,7 +69,7 @@ impl vouch_lib::extension::Extension for JsExtension {
         package_version: &str,
     ) -> Result<vouch_lib::extension::RemotePackageMetadata> {
         // Query remote package registry for given package.
-        let registry_human_url = get_registry_human_url(&self, &package_name, &package_version)?;
+        let human_url = get_registry_human_url(&self, &package_name, &package_version)?;
 
         // Currently, only one registry is supported. Therefore simply extract.
         let registry_host_name = self
@@ -85,7 +85,7 @@ impl vouch_lib::extension::Extension for JsExtension {
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             registry_host_name: registry_host_name,
-            registry_human_url: registry_human_url.to_string(),
+            human_url: human_url.to_string(),
             archive_url: archive_url.to_string(),
         })
     }
