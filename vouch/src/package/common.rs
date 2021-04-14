@@ -10,7 +10,7 @@ pub struct Package {
     pub name: String,
     pub version: String,
     pub registry: registry::Registry,
-    pub archive_hash: String,
+    pub artifact_hash: String,
 }
 
 impl Ord for Package {
@@ -19,14 +19,14 @@ impl Ord for Package {
             &self.name,
             &self.version,
             &self.registry,
-            &self.archive_hash,
+            &self.artifact_hash,
             &self.id,
         )
             .cmp(&(
                 &other.name,
                 &other.version,
                 &other.registry,
-                &other.archive_hash,
+                &other.artifact_hash,
                 &other.id,
             ))
     }
@@ -53,6 +53,6 @@ impl crate::common::HashSansId for Package {
         self.name.hash(state);
         self.version.hash(state);
         self.registry.hash_sans_id(state);
-        self.archive_hash.hash(state);
+        self.artifact_hash.hash(state);
     }
 }

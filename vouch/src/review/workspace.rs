@@ -27,7 +27,7 @@ pub fn ensure(
     let archive_path = package_unique_directory.join(format!("package.{}", file_extension));
 
     download_archive(&artifact_url, &archive_path)?;
-    let (archive_hash, _) = common::fs::hash(&archive_path)?;
+    let (artifact_hash, _) = common::fs::hash(&archive_path)?;
 
     log::debug!("Extracting archive: {}", archive_path.display());
     let workspace_directory = match file_extension.as_str() {
@@ -45,7 +45,7 @@ pub fn ensure(
         &package_version,
     )?;
 
-    Ok((workspace_directory, Some(archive_hash)))
+    Ok((workspace_directory, Some(artifact_hash)))
 }
 
 /// Returns optional path to existing review workspace directory.

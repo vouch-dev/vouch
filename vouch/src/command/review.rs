@@ -307,14 +307,14 @@ fn ensure_package_setup(
                 &tx,
             )?;
 
-            let (workspace_directory, archive_hash) = review::workspace::ensure(
+            let (workspace_directory, artifact_hash) = review::workspace::ensure(
                 &package_name,
                 &package_version,
                 &registry.host_name,
                 &registry.artifact_url,
             )?;
-            let archive_hash = archive_hash.ok_or(format_err!(
-                "New package object is being added to index but archive_hash is None. \
+            let artifact_hash = artifact_hash.ok_or(format_err!(
+                "New package object is being added to index but artifact_hash is None. \
                 Likely stale ongoing review."
             ))?;
 
@@ -322,7 +322,7 @@ fn ensure_package_setup(
                 &package_name,
                 &package_version,
                 &registry,
-                &archive_hash,
+                &artifact_hash,
                 &tx,
             )?;
 

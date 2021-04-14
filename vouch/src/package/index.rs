@@ -21,7 +21,7 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
             name                       TEXT NOT NULL,
             version                    TEXT NOT NULL,
             registry_id                INTEGER NOT NULL,
-            archive_hash               TEXT NOT NULL,
+            artifact_hash              TEXT NOT NULL,
 
             FOREIGN KEY(registry_id) REFERENCES registry(id)
             UNIQUE(name, version, registry_id)
@@ -35,7 +35,7 @@ pub fn insert(
     package_name: &str,
     package_version: &str,
     registry: &registry::Registry,
-    archive_hash: &str,
+    artifact_hash: &str,
     tx: &StoreTransaction,
 ) -> Result<common::Package> {
     tx.index_tx().execute_named(
@@ -44,20 +44,20 @@ pub fn insert(
                 name,
                 version,
                 registry_id,
-                archive_hash
+                artifact_hash
             )
             VALUES (
                 :name,
                 :version,
                 :registry_id,
-                :archive_hash
+                :artifact_hash
             )
         ",
         rusqlite::named_params! {
             ":name": package_name,
             ":version": package_version,
             ":registry_id": registry.id,
-            ":archive_hash": archive_hash,
+            ":artifact_hash": artifact_hash,
         },
     )?;
     Ok(common::Package {
@@ -65,7 +65,7 @@ pub fn insert(
         name: package_name.to_string(),
         version: package_version.to_string(),
         registry: registry.clone(),
-        archive_hash: archive_hash.to_string(),
+        artifact_hash: artifact_hash.to_string(),
     })
 }
 
@@ -120,7 +120,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<common::Pac
             name: row.get(1)?,
             version: row.get(2)?,
             registry: registry,
-            archive_hash: row.get(4)?,
+            artifact_hash: row.get(4)?,
         };
         packages.insert(package);
     }
@@ -157,7 +157,7 @@ pub fn merge(
             &package.name,
             &package.version,
             &registry,
-            &package.archive_hash,
+            &package.artifact_hash,
             &tx,
         )?;
         new_packages.insert(package);
@@ -198,7 +198,7 @@ mod tests {
                     human_url: url::Url::parse( "https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
                     artifact_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
                 },
-                archive_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
+                artifact_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
             }
         };
         let incoming_packages = maplit::hashset! {
@@ -212,7 +212,7 @@ mod tests {
                     human_url: url::Url::parse("https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
                     artifact_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
                 },
-                archive_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
+                artifact_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
             }
         };
         let result =
