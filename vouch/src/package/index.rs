@@ -143,7 +143,7 @@ pub fn merge(
             &registry::index::Fields {
                 host_name: Some(package.registry.host_name.as_str()),
                 human_url: Some(package.registry.human_url.as_str()),
-                archive_url: Some(package.registry.archive_url.as_str()),
+                artifact_url: Some(package.registry.artifact_url.as_str()),
                 ..Default::default()
             },
             &tx,
@@ -196,7 +196,7 @@ mod tests {
                     id: 2,
                     host_name: "pypi.org".to_string(),
                     human_url: url::Url::parse( "https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
-                    archive_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
+                    artifact_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
                 },
                 archive_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
             }
@@ -210,7 +210,7 @@ mod tests {
                     id: 1,
                     host_name: "pypi.org".to_string(),
                     human_url: url::Url::parse("https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
-                    archive_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
+                    artifact_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
                 },
                 archive_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
             }

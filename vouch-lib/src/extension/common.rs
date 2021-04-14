@@ -43,7 +43,7 @@ pub struct DependenciesSpec {
 pub struct RemotePackageMetadata {
     pub registry_host_name: String,
     pub human_url: String,
-    pub archive_url: String,
+    pub artifact_url: String,
 }
 
 pub trait FromLib: Send + Sync {

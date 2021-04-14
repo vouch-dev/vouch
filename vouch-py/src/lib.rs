@@ -80,13 +80,13 @@ impl vouch_lib::extension::Extension for PyExtension {
             .clone();
 
         let entry_json = get_registry_entry_json(&package_name)?;
-        let archive_url = get_archive_url(&entry_json, &package_version)?;
+        let artifact_url = get_archive_url(&entry_json, &package_version)?;
         let human_url = get_registry_human_url(&self, &package_name, &package_version)?;
 
         Ok(vouch_lib::extension::RemotePackageMetadata {
             registry_host_name: registry_host_name,
             human_url: human_url.to_string(),
-            archive_url: archive_url.to_string(),
+            artifact_url: artifact_url.to_string(),
         })
     }
 }

@@ -12,7 +12,7 @@ pub fn ensure(
     package_name: &str,
     package_version: &str,
     registry_host_name: &str,
-    archive_url: &url::Url,
+    artifact_url: &url::Url,
 ) -> Result<(std::path::PathBuf, Option<String>)> {
     if let Some(workspace_directory) =
         get_existing(&package_name, &package_version, &registry_host_name)?
@@ -20,13 +20,13 @@ pub fn ensure(
         return Ok((workspace_directory, None));
     }
 
-    let file_extension = get_archive_file_extension(&archive_url)?;
+    let file_extension = get_archive_file_extension(&artifact_url)?;
 
     let package_unique_directory =
         setup_unique_package_directory(&package_name, &package_version, &registry_host_name)?;
     let archive_path = package_unique_directory.join(format!("package.{}", file_extension));
 
-    download_archive(&archive_url, &archive_path)?;
+    download_archive(&artifact_url, &archive_path)?;
     let (archive_hash, _) = common::fs::hash(&archive_path)?;
 
     log::debug!("Extracting archive: {}", archive_path.display());
@@ -68,8 +68,8 @@ pub fn get_existing(
 }
 
 /// Extract and return archive file extension from archive URL.
-fn get_archive_file_extension(archive_url: &url::Url) -> Result<String> {
-    let path = std::path::Path::new(archive_url.path());
+fn get_archive_file_extension(artifact_url: &url::Url) -> Result<String> {
+    let path = std::path::Path::new(artifact_url.path());
     if path
         .to_str()
         .ok_or(format_err!("Failed to parse URL path as str."))?
@@ -82,7 +82,7 @@ fn get_archive_file_extension(archive_url: &url::Url) -> Result<String> {
         .extension()
         .ok_or(format_err!(
             "Failed to parse file extension from archive URL: {}",
-            archive_url
+            artifact_url
         ))?
         .to_str()
         .ok_or(format_err!(

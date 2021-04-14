@@ -190,7 +190,7 @@ fn setup_existing_review(
         &review.package.name,
         &review.package.version,
         &review.package.registry.host_name,
-        &review.package.registry.archive_url,
+        &review.package.registry.artifact_url,
     )?;
     Ok(Some((review.clone(), workspace_directory)))
 }
@@ -295,7 +295,7 @@ fn ensure_package_setup(
                 &package.name,
                 &package.version,
                 &package.registry.host_name,
-                &package.registry.archive_url,
+                &package.registry.artifact_url,
             )?;
             (package, workspace_directory)
         }
@@ -303,7 +303,7 @@ fn ensure_package_setup(
             let registry = registry::index::ensure(
                 &remote_package_metadata.registry_host_name,
                 &url::Url::parse(&remote_package_metadata.human_url)?,
-                &url::Url::parse(&remote_package_metadata.archive_url)?,
+                &url::Url::parse(&remote_package_metadata.artifact_url)?,
                 &tx,
             )?;
 
@@ -311,7 +311,7 @@ fn ensure_package_setup(
                 &package_name,
                 &package_version,
                 &registry.host_name,
-                &registry.archive_url,
+                &registry.artifact_url,
             )?;
             let archive_hash = archive_hash.ok_or(format_err!(
                 "New package object is being added to index but archive_hash is None. \
