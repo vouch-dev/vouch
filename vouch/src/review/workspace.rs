@@ -4,20 +4,32 @@ use std::io::Write;
 use crate::common;
 use crate::review;
 
+static MANIFEST_FILE_NAME: &str = "manifest.json";
+
+#[derive(
+    Debug, Clone, Default, Ord, PartialOrd, Eq, PartialEq, serde::Serialize, serde::Deserialize,
+)]
+pub struct Manifest {
+    pub workspace_path: std::path::PathBuf,
+    pub manifest_path: std::path::PathBuf,
+    pub artifact_path: std::path::PathBuf,
+    pub artifact_hash: String,
+}
+
 /// Ensure review workspace setup is complete.
 ///
 /// Download and unpack package for review.
-/// If ongoing workspace exists, return directory path.
+/// If ongoing workspace exists, return manifest.
 pub fn ensure(
     package_name: &str,
     package_version: &str,
     registry_host_name: &str,
     artifact_url: &url::Url,
-) -> Result<(std::path::PathBuf, Option<String>)> {
-    if let Some(workspace_directory) =
+) -> Result<Manifest> {
+    if let Some(workspace_manifest) =
         get_existing(&package_name, &package_version, &registry_host_name)?
     {
-        return Ok((workspace_directory, None));
+        return Ok(workspace_manifest);
     }
 
     let file_extension = get_archive_file_extension(&artifact_url)?;
@@ -45,7 +57,39 @@ pub fn ensure(
         &package_version,
     )?;
 
-    Ok((workspace_directory, Some(artifact_hash)))
+    let workspace_manifest = Manifest {
+        workspace_path: workspace_directory,
+        manifest_path: get_manifest_path(&package_unique_directory),
+        artifact_path: archive_path,
+        artifact_hash: artifact_hash,
+    };
+    write_manifest(&workspace_manifest)?;
+    Ok(workspace_manifest)
+}
+
+fn get_manifest_path(package_unique_directory: &std::path::PathBuf) -> std::path::PathBuf {
+    package_unique_directory.join(MANIFEST_FILE_NAME)
+}
+
+fn write_manifest(workspace_manifest: &Manifest) -> Result<()> {
+    let path = &workspace_manifest.manifest_path;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .append(false)
+        .create(true)
+        .open(&path)
+        .context(format!(
+            "Can't open/create file for writing: {}",
+            path.display()
+        ))?;
+    file.write_all(serde_json::to_string_pretty(&workspace_manifest)?.as_bytes())?;
+    Ok(())
+}
+
+fn read_manifest(path: &std::path::PathBuf) -> Result<Manifest> {
+    let file = std::fs::File::open(path)?;
+    let reader = std::io::BufReader::new(file);
+    Ok(serde_yaml::from_reader(reader)?)
 }
 
 /// Returns optional path to existing review workspace directory.
@@ -53,15 +97,12 @@ pub fn get_existing(
     package_name: &str,
     package_version: &str,
     registry_host_name: &str,
-) -> Result<Option<std::path::PathBuf>> {
+) -> Result<Option<Manifest>> {
     let package_unique_directory =
         get_unique_package_directory(&package_name, &package_version, &registry_host_name)?;
-    let workspace_directory = package_unique_directory.join(get_workspace_directory_name(
-        &package_name,
-        &package_version,
-    )?);
-    if workspace_directory.exists() {
-        Ok(Some(workspace_directory))
+    let manifest_path = get_manifest_path(&package_unique_directory);
+    if manifest_path.is_file() {
+        Ok(Some(read_manifest(&manifest_path)?))
     } else {
         Ok(None)
     }
@@ -361,10 +402,25 @@ mod tests {
     }
 }
 
-pub fn remove(workspace: &std::path::PathBuf) -> Result<()> {
-    log::debug!("Removing workspace directory: {}", workspace.display());
-    std::fs::remove_dir_all(&workspace)?;
+pub fn remove(workspace_manifest: &Manifest) -> Result<()> {
+    log::debug!(
+        "Removing workspace directory: {}",
+        workspace_manifest.workspace_path.display()
+    );
+    std::fs::remove_dir_all(&workspace_manifest.workspace_path)?;
+
+    if workspace_manifest.manifest_path.is_file() {
+        log::debug!(
+            "Removing workspace manifest file: {}",
+            workspace_manifest.manifest_path.display()
+        );
+        std::fs::remove_file(&workspace_manifest.manifest_path)?;
+    }
+
     let paths = common::fs::DataPaths::new()?;
-    common::fs::remove_empty_directories(&workspace, &paths.ongoing_reviews_directory)?;
+    common::fs::remove_empty_directories(
+        &workspace_manifest.workspace_path,
+        &paths.ongoing_reviews_directory,
+    )?;
     Ok(())
 }

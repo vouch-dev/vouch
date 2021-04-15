@@ -46,7 +46,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
 
-    let (mut review, edit_mode, workspace_directory) = setup_review(
+    let (mut review, edit_mode, workspace_manifest) = setup_review(
         &args.package_name,
         &args.package_version,
         &extension_names,
@@ -55,13 +55,14 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     )?;
 
     // TODO: Make use of workspace analysis in review.
-    review::workspace::analyse(&workspace_directory)?;
+    review::workspace::analyse(&workspace_manifest.workspace_path)?;
 
-    let reviews_directory = review::tool::ensure_reviews_directory(&workspace_directory)?;
+    let reviews_directory =
+        review::tool::ensure_reviews_directory(&workspace_manifest.workspace_path)?;
     let active_review_file = review::active::ensure(&review, &reviews_directory)?;
 
     println!("Starting review tool.");
-    review::tool::run(&workspace_directory, &config)?;
+    review::tool::run(&workspace_manifest.workspace_path, &config)?;
     review.comments = get_comments(&active_review_file, &tx)?;
     println!(
         "Review tool closed. Fund {} review comments.",
@@ -82,7 +83,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         tx.commit(&commit_message)?;
         println!("Review committed.");
 
-        review::workspace::remove(&workspace_directory)?;
+        review::workspace::remove(&workspace_manifest)?;
     } else {
         println!("Not committing review. Review saved as ongoing.");
     }
@@ -124,8 +125,8 @@ fn setup_review(
     extension_names: &std::collections::BTreeSet<String>,
     config: &common::config::Config,
     tx: &StoreTransaction,
-) -> Result<(review::Review, ReviewEditMode, std::path::PathBuf)> {
-    if let Some((review, workspace_directory)) = setup_existing_review(
+) -> Result<(review::Review, ReviewEditMode, review::workspace::Manifest)> {
+    if let Some((review, workspace_manifest)) = setup_existing_review(
         &package_name,
         &package_version,
         &extension_names,
@@ -133,7 +134,7 @@ fn setup_review(
         &tx,
     )? {
         println!("Selecting existing review for editing.");
-        Ok((review, ReviewEditMode::Update, workspace_directory))
+        Ok((review, ReviewEditMode::Update, workspace_manifest))
     } else {
         println!("Starting new review.");
         let (review, workspace_directory) = setup_new_review(
@@ -154,7 +155,7 @@ fn setup_existing_review(
     extension_names: &BTreeSet<String>,
     config: &common::config::Config,
     tx: &StoreTransaction,
-) -> Result<Option<(review::Review, std::path::PathBuf)>> {
+) -> Result<Option<(review::Review, review::workspace::Manifest)>> {
     log::debug!("Checking index for existing root peer review.");
     let root_peer =
         peer::index::get_root(&tx)?.ok_or(format_err!("Cant find root peer. Index corrupt."))?;
@@ -186,13 +187,13 @@ fn setup_existing_review(
     };
 
     log::debug!("Setting up review workspace using existing review package metadata.");
-    let (workspace_directory, _archive_hash) = review::workspace::ensure(
+    let workspace_manifest = review::workspace::ensure(
         &review.package.name,
         &review.package.version,
         &review.package.registry.host_name,
         &review.package.registry.artifact_url,
     )?;
-    Ok(Some((review.clone(), workspace_directory)))
+    Ok(Some((review.clone(), workspace_manifest)))
 }
 
 /// Filter reviews on given extension.
@@ -259,12 +260,12 @@ fn setup_new_review(
     extension_names: &BTreeSet<String>,
     config: &common::config::Config,
     tx: &StoreTransaction,
-) -> Result<(review::Review, std::path::PathBuf)> {
+) -> Result<(review::Review, review::workspace::Manifest)> {
     let extensions = extension::get_enabled_extensions(&extension_names, &config)?;
-    let (package, workspace_directory) =
+    let (package, workspace_manifest) =
         ensure_package_setup(&package_name, &package_version, &extensions, &tx)?;
     let review = get_insert_empty_review(&package, &tx)?;
-    Ok((review, workspace_directory))
+    Ok((review, workspace_manifest))
 }
 
 /// Attempt to retrieve package from index.
@@ -274,7 +275,7 @@ fn ensure_package_setup(
     package_version: &str,
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     tx: &common::StoreTransaction,
-) -> Result<(package::Package, std::path::PathBuf)> {
+) -> Result<(package::Package, review::workspace::Manifest)> {
     let remote_package_metadata = extension::search(&package_name, &package_version, &extensions)?;
 
     let package = package::index::get(
@@ -291,13 +292,13 @@ fn ensure_package_setup(
 
     let package = match package {
         Some(package) => {
-            let (workspace_directory, _archive_hash) = review::workspace::ensure(
+            let workspace_manifest = review::workspace::ensure(
                 &package.name,
                 &package.version,
                 &package.registry.host_name,
                 &package.registry.artifact_url,
             )?;
-            (package, workspace_directory)
+            (package, workspace_manifest)
         }
         None => {
             let registry = registry::index::ensure(
@@ -306,29 +307,20 @@ fn ensure_package_setup(
                 &url::Url::parse(&remote_package_metadata.artifact_url)?,
                 &tx,
             )?;
-
-            let (workspace_directory, artifact_hash) = review::workspace::ensure(
+            let workspace_manifest = review::workspace::ensure(
                 &package_name,
                 &package_version,
                 &registry.host_name,
                 &registry.artifact_url,
             )?;
-            let artifact_hash = artifact_hash.ok_or(format_err!(
-                "New package object is being added to index but artifact_hash is None. \
-                Likely stale ongoing review."
-            ))?;
-
             let package = package::index::insert(
                 &package_name,
                 &package_version,
                 &registry,
-                &artifact_hash,
+                &workspace_manifest.artifact_hash,
                 &tx,
             )?;
-
-            // TODO: Only cleanup archive after package insertion records archive hash.
-
-            (package, workspace_directory)
+            (package, workspace_manifest)
         }
     };
     Ok(package)
