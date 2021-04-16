@@ -72,7 +72,7 @@ fn select_search_result<'a>(
 
 /// Identify all supported dependencies in a local code base.
 ///
-/// Conducts a parallel search accross extensions.
+/// Conducts a parallel search across extensions.
 pub fn identify_local_dependencies(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     working_directory: &std::path::PathBuf,

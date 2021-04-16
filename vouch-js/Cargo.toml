@@ -16,7 +16,7 @@ name = "vouch-js"
 path = "src/bin.rs"
 
 [dependencies]
-vouch-lib = { path = "../vouch-lib", version = "0.2.3" }
+vouch-lib = { path = "../vouch-lib", version = "0.2.4" }
 
 anyhow = "1.0.31"
 structopt = "0.3.14"

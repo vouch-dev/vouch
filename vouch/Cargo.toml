@@ -9,8 +9,8 @@ default-run = "vouch"
 description = "A multi-ecosystem distributed package review system."
 
 [dependencies]
-vouch-lib = { path = "../vouch-lib", version = "0.2.3" }
-vouch-py = { path = "../vouch-py", version = "0.2.3" }
+vouch-lib = { path = "../vouch-lib", version = "0.2.4" }
+vouch-py = { path = "../../vouch-py", version = "0.2.3" }
 vouch-js = { path = "../vouch-js", version = "0.2.3" }
 
 anyhow = "1.0.31"
