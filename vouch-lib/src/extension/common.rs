@@ -49,14 +49,14 @@ pub struct RegistryPackageMetadata {
     pub is_primary: bool,
 }
 
-pub trait FromLib: Send + Sync {
+pub trait FromLib: Extension + Send + Sync {
     /// Initialize extension from a library.
     fn new() -> Self
     where
         Self: Sized;
 }
 
-pub trait FromProcess: Send + Sync {
+pub trait FromProcess: Extension + Send + Sync {
     /// Initialize extension from a process.
     fn from_process(
         process_path: &std::path::PathBuf,
@@ -67,7 +67,10 @@ pub trait FromProcess: Send + Sync {
 }
 
 pub trait Extension: Send + Sync {
+    // Returns extension short name.
     fn name(&self) -> String;
+
+    // Returns supported registries host names.
     fn registries(&self) -> Vec<String>;
 
     /// Identify local package dependencies.
