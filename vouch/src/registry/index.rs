@@ -51,6 +51,7 @@ pub fn insert(
 #[derive(Debug, Default)]
 pub struct Fields<'a> {
     pub id: Option<crate::common::index::ID>,
+    pub ids: Option<&'a Vec<crate::common::index::ID>>,
     pub host_name: Option<&'a str>,
     pub human_url: Option<&'a str>,
     pub artifact_url: Option<&'a str>,
@@ -59,21 +60,25 @@ pub struct Fields<'a> {
 pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<common::Registry>> {
     let id =
         crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
+    let ids_where_field = crate::common::index::get_ids_where_field(&fields.ids);
     let host_name = crate::common::index::get_like_clause_param(fields.host_name);
     let human_url = crate::common::index::get_like_clause_param(fields.human_url);
     let artifact_url = crate::common::index::get_like_clause_param(fields.artifact_url);
 
-    let mut statement = tx.index_tx().prepare(
+    let sql_query = format!(
         r"
             SELECT *
             FROM registry
             WHERE
                 id LIKE :id ESCAPE '\'
+                AND {ids_where_field}
                 AND host_name LIKE :host_name ESCAPE '\'
                 AND human_url LIKE :human_url ESCAPE '\'
                 AND artifact_url LIKE :artifact_url ESCAPE '\'
         ",
-    )?;
+        ids_where_field = ids_where_field
+    );
+    let mut statement = tx.index_tx().prepare(&sql_query)?;
     let mut rows = statement.query_named(&[
         (":id", &id),
         (":host_name", &host_name),

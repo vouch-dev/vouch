@@ -79,7 +79,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
         .interact()?
     {
         review::store(&review, &tx)?;
-        let commit_message = get_commit_message(&review.package, &edit_mode);
+        let commit_message = get_commit_message(&review.package, &edit_mode)?;
         tx.commit(&commit_message)?;
         println!("Review committed.");
 
@@ -169,6 +169,8 @@ fn setup_existing_review(
         &tx,
     )?;
 
+    // TODO: Include filter in above get call.
+
     log::debug!("Count existing matching reviews: {}", reviews.len());
     let reviews = filter_reviews(&reviews, &extension_names, &config)?;
     log::debug!(
@@ -187,13 +189,24 @@ fn setup_existing_review(
     };
 
     log::debug!("Setting up review workspace using existing review package metadata.");
+    let registry = get_primary_registry(&review.package)?;
     let workspace_manifest = review::workspace::ensure(
         &review.package.name,
         &review.package.version,
-        &review.package.registry.host_name,
-        &review.package.registry.artifact_url,
+        &registry.host_name,
+        &registry.artifact_url,
     )?;
     Ok(Some((review.clone(), workspace_manifest)))
+}
+
+// TODO: Replace with method on Package.
+fn get_primary_registry<'a>(package: &'a package::Package) -> Result<&'a registry::Registry> {
+    let registry = package
+        .registries
+        .iter()
+        .next()
+        .ok_or(format_err!("Package does not have associated registries."))?;
+    Ok(registry)
 }
 
 /// Filter reviews on given extension.
@@ -203,7 +216,7 @@ fn filter_reviews(
     config: &common::config::Config,
 ) -> Result<Vec<review::Review>> {
     // Find registry host names which are handled by the given extensions.
-    let extension_supported_registry_host_names: std::collections::BTreeSet<String> = config
+    let enabled_registries: std::collections::BTreeSet<String> = config
         .extensions
         .supported_package_registries
         .iter()
@@ -216,9 +229,13 @@ fn filter_reviews(
     Ok(reviews
         .iter()
         .filter(|review| {
-            extension_supported_registry_host_names.contains(&review.package.registry.host_name)
+            review
+                .package
+                .registries
+                .iter()
+                .any(|registry| enabled_registries.contains(&registry.host_name))
         })
-        .map(|review| review.clone())
+        .cloned()
         .collect())
 }
 
@@ -231,7 +248,14 @@ fn handle_multiple_matching_reviews(
 
     let registry_host_names: std::collections::BTreeSet<String> = reviews
         .iter()
-        .map(|review| review.package.registry.host_name.clone())
+        .map(|review| {
+            review
+                .package
+                .registries
+                .iter()
+                .map(|registry| registry.host_name.clone())
+        })
+        .flatten()
         .collect();
     let extension_names: std::collections::BTreeSet<String> = config
         .extensions
@@ -242,7 +266,6 @@ fn handle_multiple_matching_reviews(
         })
         .map(|(_registry_host_name, extension_name)| extension_name.clone())
         .collect();
-
     let extension_names: Vec<String> = extension_names.into_iter().collect();
 
     return Err(format_err!(
@@ -282,7 +305,9 @@ fn ensure_package_setup(
         &package::index::Fields {
             package_name: Some(&package_name),
             package_version: Some(&package_version),
-            registry_host_name: Some(&remote_package_metadata.registry_host_name),
+            registry_host_names: Some(
+                maplit::btreeset! {remote_package_metadata.registry_host_name.as_str()},
+            ),
             ..Default::default()
         },
         &tx,
@@ -292,11 +317,12 @@ fn ensure_package_setup(
 
     let package = match package {
         Some(package) => {
+            let registry = get_primary_registry(&package)?;
             let workspace_manifest = review::workspace::ensure(
                 &package.name,
                 &package.version,
-                &package.registry.host_name,
-                &package.registry.artifact_url,
+                &registry.host_name,
+                &registry.artifact_url,
             )?;
             (package, workspace_manifest)
         }
@@ -316,7 +342,7 @@ fn ensure_package_setup(
             let package = package::index::insert(
                 &package_name,
                 &package_version,
-                &registry,
+                &maplit::btreeset! {registry},
                 &workspace_manifest.artifact_hash,
                 &tx,
             )?;
@@ -341,16 +367,17 @@ fn get_insert_empty_review(
     Ok(unset_review)
 }
 
-fn get_commit_message(package: &package::Package, editing_mode: &ReviewEditMode) -> String {
+fn get_commit_message(package: &package::Package, editing_mode: &ReviewEditMode) -> Result<String> {
     let message_prefix = match editing_mode {
         ReviewEditMode::Create => "Creating",
         ReviewEditMode::Update => "Updating",
     };
-    format!(
+    let registry = get_primary_registry(&package)?;
+    Ok(format!(
         "{message_prefix} review: {registry_host_name}/{package_name}/{package_version}",
         message_prefix = message_prefix,
-        registry_host_name = package.registry.host_name,
+        registry_host_name = registry.host_name,
         package_name = package.name,
         package_version = package.version,
-    )
+    ))
 }

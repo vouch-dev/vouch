@@ -35,7 +35,7 @@ pub fn get_dependency_report(
         &review::index::Fields {
             package_name: Some(&dependency.name),
             package_version: Some(&package_version),
-            registry_host_name: Some(registry_host_name),
+            registry_host_names: Some(maplit::btreeset! {registry_host_name}),
             ..Default::default()
         },
         &tx,

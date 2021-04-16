@@ -1,4 +1,4 @@
-use anyhow::{format_err, Result};
+use anyhow::Result;
 use std::collections::HashSet;
 
 use super::common;
@@ -10,7 +10,9 @@ pub struct Fields<'a> {
     pub id: Option<crate::common::index::ID>,
     pub package_name: Option<&'a str>,
     pub package_version: Option<&'a str>,
-    pub registry_host_name: Option<&'a str>,
+
+    // Filters match for any in set.
+    pub registry_host_names: Option<std::collections::BTreeSet<&'a str>>,
 }
 
 pub fn setup(tx: &StoreTransaction) -> Result<()> {
@@ -20,11 +22,10 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
             id                         INTEGER NOT NULL PRIMARY KEY,
             name                       TEXT NOT NULL,
             version                    TEXT NOT NULL,
-            registry_id                INTEGER NOT NULL,
+            registry_ids               BLOB NOT NULL,
             artifact_hash              TEXT NOT NULL,
 
-            FOREIGN KEY(registry_id) REFERENCES registry(id)
-            UNIQUE(name, version, registry_id)
+            UNIQUE(name, version, artifact_hash)
         )",
         rusqlite::NO_PARAMS,
     )?;
@@ -34,29 +35,37 @@ pub fn setup(tx: &StoreTransaction) -> Result<()> {
 pub fn insert(
     package_name: &str,
     package_version: &str,
-    registry: &registry::Registry,
+    registries: &std::collections::BTreeSet<registry::Registry>,
     artifact_hash: &str,
     tx: &StoreTransaction,
 ) -> Result<common::Package> {
+    assert!(
+        !registries.is_empty(),
+        "At least one registry must be assigned to a package before index insert."
+    );
+    let registry_ids: Vec<crate::common::index::ID> =
+        registries.into_iter().map(|c| c.id).collect();
+    let registry_ids = bincode::serialize(&registry_ids)?;
+
     tx.index_tx().execute_named(
         r"
             INSERT INTO package (
                 name,
                 version,
-                registry_id,
+                registry_ids,
                 artifact_hash
             )
             VALUES (
                 :name,
                 :version,
-                :registry_id,
+                :registry_ids,
                 :artifact_hash
             )
         ",
         rusqlite::named_params! {
             ":name": package_name,
             ":version": package_version,
-            ":registry_id": registry.id,
+            ":registry_ids": registry_ids,
             ":artifact_hash": artifact_hash,
         },
     )?;
@@ -64,7 +73,7 @@ pub fn insert(
         id: tx.index_tx().last_insert_rowid(),
         name: package_name.to_string(),
         version: package_version.to_string(),
-        registry: registry.clone(),
+        registries: registries.clone(),
         artifact_hash: artifact_hash.to_string(),
     })
 }
@@ -74,43 +83,53 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<common::Pac
         crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
     let package_name = crate::common::index::get_like_clause_param(fields.package_name);
     let package_version = crate::common::index::get_like_clause_param(fields.package_version);
-    let registry_host_name = crate::common::index::get_like_clause_param(fields.registry_host_name);
 
     let mut statement = tx.index_tx().prepare(
         r"
             SELECT *
             FROM package
-            JOIN registry
-                ON package.registry_id = registry.id
             WHERE
                 package.id LIKE :package_id ESCAPE '\'
                 AND name LIKE :name ESCAPE '\'
                 AND version LIKE :version ESCAPE '\'
-                AND registry.host_name LIKE :registry_host_name ESCAPE '\'
         ",
     )?;
     let mut rows = statement.query_named(&[
         (":package_id", &id),
         (":name", &package_name),
         (":version", &package_version),
-        (":registry_host_name", &registry_host_name),
     ])?;
+
     let mut packages = HashSet::new();
     while let Some(row) = rows.next()? {
-        let registry_id: crate::common::index::ID = row.get(3)?;
-        let registry = registry::index::get(
-            &registry::index::Fields {
-                id: Some(registry_id),
-                ..Default::default()
-            },
-            &tx,
-        )?
-        .into_iter()
-        .next()
-        .ok_or(format_err!("Failed to find registry for package.",))?;
+        let registry_ids: Option<Result<Vec<crate::common::index::ID>>> = row
+            .get::<_, Option<Vec<u8>>>(3)?
+            .map(|x| Ok(bincode::deserialize(&x)?));
+        let registries = match registry_ids {
+            Some(registry_ids) => {
+                let registry_ids = registry_ids?;
+                registry::index::get(
+                    &registry::index::Fields {
+                        ids: Some(&registry_ids),
+                        ..Default::default()
+                    },
+                    &tx,
+                )?
+                .into_iter()
+                .collect()
+            }
+            None => std::collections::BTreeSet::<registry::Registry>::new(),
+        };
 
-        if let Some(registry_host_name) = fields.registry_host_name {
-            if registry.host_name != registry_host_name {
+        // Skip package if none of the given registry host names match to any registry.
+        if let Some(registry_host_names) = &fields.registry_host_names {
+            let mut found_match = false;
+            for registry_host_name in registry_host_names {
+                found_match |= registries
+                    .iter()
+                    .any(|registry| &registry.host_name.as_str() == registry_host_name);
+            }
+            if !found_match {
                 continue;
             }
         }
@@ -119,7 +138,7 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<HashSet<common::Pac
             id: row.get(0)?,
             name: row.get(1)?,
             version: row.get(2)?,
-            registry: registry,
+            registries: registries,
             artifact_hash: row.get(4)?,
         };
         packages.insert(package);
@@ -139,24 +158,21 @@ pub fn merge(
     for package in
         crate::common::index::get_difference_sans_id(&incoming_packages, &existing_packages)?
     {
-        let registry = registry::index::get(
-            &registry::index::Fields {
-                host_name: Some(package.registry.host_name.as_str()),
-                human_url: Some(package.registry.human_url.as_str()),
-                artifact_url: Some(package.registry.artifact_url.as_str()),
-                ..Default::default()
-            },
-            &tx,
-        )?
-        .into_iter()
-        .next()
-        .ok_or(format_err!("Failed to find registry for package.",))?;
+        let mut new_registries = std::collections::BTreeSet::new();
+        for registry in package.registries {
+            let new_registry = registry::index::ensure(
+                &registry.host_name,
+                &registry.human_url,
+                &registry.artifact_url,
+                &tx,
+            )?;
+            new_registries.insert(new_registry);
+        }
 
-        log::debug!("Inserting package: {:?}", package);
         let package = insert(
             &package.name,
             &package.version,
-            &registry,
+            &new_registries.clone(),
             &package.artifact_hash,
             &tx,
         )?;
@@ -183,21 +199,23 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::Result;
+    use anyhow::{format_err, Result};
 
     #[test]
     fn test_merge_correct_difference_set() -> Result<()> {
+        let registries = maplit::btreeset! { registry::Registry {
+            id: 2,
+            host_name: "pypi.org".to_string(),
+            human_url: url::Url::parse( "https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
+            artifact_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
+        }};
+
         let existing_packages = maplit::hashset! {
             common::Package {
                 id: 2,
                 name: "py-cpuinfo".to_string(),
                 version: "5.0.0".to_string(),
-                registry: registry::Registry {
-                    id: 2,
-                    host_name: "pypi.org".to_string(),
-                    human_url: url::Url::parse( "https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
-                    artifact_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
-                },
+                registries: registries.clone(),
                 artifact_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
             }
         };
@@ -206,18 +224,84 @@ mod tests {
                 id: 3,
                 name: "py-cpuinfo".to_string(),
                 version: "5.0.0".to_string(),
-                registry: registry::Registry {
-                    id: 1,
-                    host_name: "pypi.org".to_string(),
-                    human_url: url::Url::parse("https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
-                    artifact_url: url::Url::parse("https://files.pythonhosted.org/packages/42/60/63f28a5401da733043abe7053e7d9591491b4784c4f87c339bf51215aa0a/py-cpuinfo-5.0.0.tar.gz")?,
-                },
+                registries: registries.clone(),
                 artifact_hash: "4a42aafca3d68e4feee71fde2779c6b30be37370aa6deb3e88356bbec266d017".to_string()
             }
         };
         let result =
             crate::common::index::get_difference_sans_id(&incoming_packages, &existing_packages)?;
         assert!(result.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_on_registry_host_names() -> Result<()> {
+        let mut db = rusqlite::Connection::open_in_memory()?;
+        let tx = StoreTransaction::new(db.transaction()?)?;
+        crate::store::index::setup(&tx)?;
+
+        let registries_1 = maplit::btreeset! { registry::Registry {
+            id: 1,
+            host_name: "host_name_1".to_string(),
+            human_url: url::Url::parse( "https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
+            artifact_url: url::Url::parse("https://artifact_url_1.com")?,
+        }};
+        let package_1 = common::Package {
+            id: 1,
+            name: "py-cpuinfo".to_string(),
+            version: "5.0.0".to_string(),
+            registries: registries_1.clone(),
+            artifact_hash: "artifact_hash_1".to_string(),
+        };
+
+        let registries_2 = maplit::btreeset! { registry::Registry {
+            id: 2,
+            host_name: "host_name_2".to_string(),
+            human_url: url::Url::parse( "https://pypi.org/pypi/py-cpuinfo/5.0.0/")?,
+            artifact_url: url::Url::parse("https://artifact_url_2.com")?,
+        }};
+        let package_2 = common::Package {
+            id: 2,
+            name: "py-cpuinfo".to_string(),
+            version: "5.0.0".to_string(),
+            registries: registries_2.clone(),
+            artifact_hash: "artifact_hash_2".to_string(),
+        };
+
+        for package in vec![package_1, package_2] {
+            let mut registries = std::collections::BTreeSet::<registry::Registry>::new();
+            for registry in package.registries {
+                registries.insert(registry::index::ensure(
+                    &registry.host_name,
+                    &registry.human_url,
+                    &registry.artifact_url,
+                    &tx,
+                )?);
+            }
+            insert(
+                &package.name,
+                &package.version,
+                &registries,
+                &package.artifact_hash,
+                &tx,
+            )?;
+        }
+
+        let result = get(
+            &Fields {
+                registry_host_names: Some(maplit::btreeset! {"host_name_1"}),
+                ..Default::default()
+            },
+            &tx,
+        )?;
+        assert!(result.len() == 1);
+        let result = &result
+            .iter()
+            .next()
+            .ok_or(format_err!("Failed to retrieve any packages."))?
+            .artifact_hash;
+        let expected = "artifact_hash_1";
+        assert_eq!(result, expected);
         Ok(())
     }
 }

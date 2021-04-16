@@ -90,19 +90,23 @@ fn get_package_reviews(
     config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<std::collections::BTreeSet<review::Review>> {
-    let registries = extension::get_enabled_registry_host_names(&extension_names, &config)?;
+    let registry_host_names =
+        extension::get_enabled_registry_host_names(&extension_names, &config)?;
+    let registry_host_names = registry_host_names
+        .iter()
+        .map(|host_name| host_name.as_str())
+        .collect();
 
     let reviews = review::index::get(
         &review::index::Fields {
             package_name: Some(package_name),
             package_version: package_version.as_deref(),
+            registry_host_names: Some(registry_host_names),
             ..Default::default()
         },
         &tx,
-    )?;
-    let reviews = reviews
-        .into_iter()
-        .filter(|r| registries.contains(&r.package.registry.host_name))
-        .collect::<std::collections::BTreeSet<_>>();
+    )?
+    .into_iter()
+    .collect::<std::collections::BTreeSet<_>>();
     Ok(reviews)
 }

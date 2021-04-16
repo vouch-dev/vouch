@@ -97,7 +97,7 @@ pub fn get(
     fields: &Fields,
     tx: &StoreTransaction,
 ) -> Result<std::collections::HashSet<common::Comment>> {
-    let ids_where_field = get_ids_where_field(&fields.ids);
+    let ids_where_field = crate::common::index::get_ids_where_field(&fields.ids);
 
     let sql_query = format!(
         "
@@ -122,20 +122,6 @@ pub fn get(
         });
     }
     Ok(comments)
-}
-
-fn get_ids_where_field<'a>(ids: &Option<&'a Vec<crate::common::index::ID>>) -> String {
-    match ids {
-        Some(ids) => {
-            let ids: String = ids
-                .into_iter()
-                .map(|i| i.to_string())
-                .collect::<Vec<String>>()
-                .join(",");
-            format!("id IN ({})", ids)
-        }
-        None => "true".to_string(),
-    }
 }
 
 /// Given a comment table row, return a comment selection.

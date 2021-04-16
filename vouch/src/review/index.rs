@@ -19,7 +19,9 @@ pub struct Fields<'a> {
 
     pub package_name: Option<&'a str>,
     pub package_version: Option<&'a str>,
-    pub registry_host_name: Option<&'a str>,
+
+    // Filters match for any in set.
+    pub registry_host_names: Option<std::collections::BTreeSet<&'a str>>,
 }
 
 pub fn setup(tx: &StoreTransaction) -> Result<()> {
@@ -154,7 +156,6 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
 
     let package_name = crate::common::index::get_like_clause_param(fields.package_name);
     let package_version = crate::common::index::get_like_clause_param(fields.package_version);
-    let registry_host_name = crate::common::index::get_like_clause_param(fields.registry_host_name);
 
     let peer_id = crate::common::index::get_like_clause_param(
         fields.peer.map(|peer| peer.id.to_string()).as_deref(),
@@ -172,14 +173,11 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
             ON review.peer_id = peer.id
         JOIN package
             ON review.package_id = package.id
-        JOIN registry
-            ON package.registry_id = registry.id
         WHERE
             review.id LIKE :review_id ESCAPE '\'
             AND package.name LIKE :name ESCAPE '\'
             AND package.version LIKE :version ESCAPE '\'
             AND peer.id LIKE :peer_id ESCAPE '\'
-            AND registry.host_name LIKE :registry_host_name ESCAPE '\'
         ",
     )?;
     let mut rows = statement.query_named(&[
@@ -187,7 +185,6 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
         (":name", &package_name),
         (":version", &package_version),
         (":peer_id", &peer_id),
-        (":registry_host_name", &registry_host_name),
     ])?;
 
     let mut reviews = Vec::new();
@@ -213,6 +210,17 @@ pub fn get(fields: &Fields, tx: &StoreTransaction) -> Result<Vec<common::Review>
         .into_iter()
         .next()
         .ok_or(format_err!("Failed to find review package in index."))?;
+
+        // Skip review if associated package registries do not match on given registry host names.
+        if let Some(registry_host_names) = &fields.registry_host_names {
+            if !package
+                .registries
+                .iter()
+                .any(|registry| registry_host_names.contains(registry.host_name.as_str()))
+            {
+                continue;
+            }
+        }
 
         let comment_ids: Option<Result<Vec<crate::common::index::ID>>> = row
             .get::<_, Option<Vec<u8>>>(3)?
@@ -249,7 +257,6 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
         crate::common::index::get_like_clause_param(fields.id.map(|id| id.to_string()).as_deref());
     let package_name = crate::common::index::get_like_clause_param(fields.package_name);
     let package_version = crate::common::index::get_like_clause_param(fields.package_version);
-    let registry_host_name = crate::common::index::get_like_clause_param(fields.registry_host_name);
 
     let peer_id = crate::common::index::get_like_clause_param(
         fields.peer.map(|peer| peer.id.to_string()).as_deref(),
@@ -287,14 +294,11 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
                 ON review.peer_id = peer.id
             JOIN package
                 ON review.package_id = package.id
-            JOIN registry
-                ON package.registry_id = registry.id
             WHERE
                 review.id LIKE :id ESCAPE '\'
                 AND package.name LIKE :name ESCAPE '\'
                 AND package.version LIKE :version ESCAPE '\'
                 AND peer.id LIKE :peer_id ESCAPE '\'
-                AND registry.host_name LIKE :registry_host_name ESCAPE '\'
         )
         ",
         &[
@@ -302,7 +306,6 @@ pub fn remove(fields: &Fields, tx: &StoreTransaction) -> Result<()> {
             (":name", &package_name),
             (":version", &package_version),
             (":peer_id", &peer_id),
-            (":registry_host_name", &registry_host_name),
         ],
     )?;
     Ok(())
@@ -338,11 +341,18 @@ pub fn merge(
             review
         ))?;
 
+        let registry_host_names = review
+            .package
+            .registries
+            .iter()
+            .clone()
+            .map(|r| r.host_name.as_str())
+            .collect();
         let package = package::index::get(
             &package::index::Fields {
                 package_name: Some(&review.package.name),
                 package_version: Some(&review.package.version),
-                registry_host_name: Some(&review.package.registry.host_name),
+                registry_host_names: Some(registry_host_names),
                 ..Default::default()
             },
             &tx,
@@ -393,7 +403,7 @@ mod tests {
         Ok(package::index::insert(
             &format!("test_package_name_{unique_tag}", unique_tag = unique_tag),
             "test_package_version",
-            &registry,
+            &maplit::btreeset! {registry},
             "test_source_code_hash",
             &tx,
         )?)
@@ -428,6 +438,66 @@ mod tests {
             let expected = maplit::btreeset! {review_1, review_2};
             let result: std::collections::BTreeSet<_> =
                 get(&Fields::default(), &tx)?.into_iter().collect();
+            assert_eq!(result, expected);
+            Ok(())
+        }
+    }
+
+    mod get {
+        use super::*;
+
+        #[test]
+        fn test_found_using_registry_host_names() -> Result<()> {
+            let mut store = crate::store::Store::from_tmp()?;
+            let tx = store.get_transaction()?;
+
+            let package_1 = get_package("package_1", &tx)?;
+            let root_peer = peer::index::get_root(&tx)?.unwrap();
+            let review_1 = insert(
+                &std::collections::BTreeSet::<comment::Comment>::new(),
+                &root_peer,
+                &package_1,
+                &tx,
+            )?;
+
+            let expected = maplit::btreeset! {review_1};
+            let result: std::collections::BTreeSet<_> = get(
+                &Fields {
+                    registry_host_names: Some(maplit::btreeset! {"test_registry_host_name"}),
+                    ..Default::default()
+                },
+                &tx,
+            )?
+            .into_iter()
+            .collect();
+            assert_eq!(result, expected);
+            Ok(())
+        }
+
+        #[test]
+        fn test_not_found_using_registry_host_names() -> Result<()> {
+            let mut store = crate::store::Store::from_tmp()?;
+            let tx = store.get_transaction()?;
+
+            let package_1 = get_package("package_1", &tx)?;
+            let root_peer = peer::index::get_root(&tx)?.unwrap();
+            insert(
+                &std::collections::BTreeSet::<comment::Comment>::new(),
+                &root_peer,
+                &package_1,
+                &tx,
+            )?;
+
+            let expected = maplit::btreeset! {};
+            let result: std::collections::BTreeSet<_> = get(
+                &Fields {
+                    registry_host_names: Some(maplit::btreeset! {"unused_registry_host_name"}),
+                    ..Default::default()
+                },
+                &tx,
+            )?
+            .into_iter()
+            .collect();
             assert_eq!(result, expected);
             Ok(())
         }

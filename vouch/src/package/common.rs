@@ -9,7 +9,7 @@ pub struct Package {
 
     pub name: String,
     pub version: String,
-    pub registry: registry::Registry,
+    pub registries: std::collections::BTreeSet<registry::Registry>,
     pub artifact_hash: String,
 }
 
@@ -18,14 +18,14 @@ impl Ord for Package {
         (
             &self.name,
             &self.version,
-            &self.registry,
+            &self.registries,
             &self.artifact_hash,
             &self.id,
         )
             .cmp(&(
                 &other.name,
                 &other.version,
-                &other.registry,
+                &other.registries,
                 &other.artifact_hash,
                 &other.id,
             ))
@@ -52,7 +52,6 @@ impl crate::common::HashSansId for Package {
     fn hash_sans_id<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
         self.version.hash(state);
-        self.registry.hash_sans_id(state);
         self.artifact_hash.hash(state);
     }
 }

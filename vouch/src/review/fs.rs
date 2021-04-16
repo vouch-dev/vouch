@@ -21,10 +21,17 @@ pub fn get_unique_package_path(
 }
 
 fn get_storage_file_path(review: &review::Review) -> Result<std::path::PathBuf> {
+    // TODO: Handle multiple registries.
     let review_directory_path = get_unique_package_path(
         &review.package.name,
         &review.package.version,
-        &review.package.registry.host_name,
+        &review
+            .package
+            .registries
+            .iter()
+            .next()
+            .ok_or(format_err!("Package does not have associated registries."))?
+            .host_name,
     )?;
 
     let paths = common::fs::DataPaths::new()?;

@@ -54,3 +54,17 @@ where
         .collect();
     Ok(difference)
 }
+
+pub fn get_ids_where_field<'a>(ids: &Option<&'a Vec<crate::common::index::ID>>) -> String {
+    match ids {
+        Some(ids) => {
+            let ids: String = ids
+                .into_iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<String>>()
+                .join(",");
+            format!("id IN ({})", ids)
+        }
+        None => "true".to_string(),
+    }
+}
