@@ -7,20 +7,22 @@ use crate::common;
 
 static EXTENSION_FILE_NAME_PREFIX: &str = "vouch-";
 
-/// Search package registries via extensions for remote package metadata.
+/// Search package registries via extensions for package metadata from registries.
 ///
 /// Raises errors for no results or multiple results. Ok for single result.
 pub fn search<'a>(
     package_name: &str,
     package_version: &str,
     extensions: &'a Vec<Box<dyn vouch_lib::extension::Extension>>,
-) -> Result<vouch_lib::extension::RemotePackageMetadata> {
-    type SearchResults = Result<Vec<Result<vouch_lib::extension::RemotePackageMetadata>>>;
+) -> Result<Vec<vouch_lib::extension::RegistryPackageMetadata>> {
+    type SearchResults = Result<Vec<Result<Vec<vouch_lib::extension::RegistryPackageMetadata>>>>;
     let search_results: SearchResults = crossbeam_utils::thread::scope(|s| {
         let threads: Vec<_> = extensions
             .iter()
             .map(|extension| {
-                s.spawn(move |_| extension.remote_package_metadata(&package_name, &package_version))
+                s.spawn(move |_| {
+                    extension.registries_package_metadata(&package_name, &package_version)
+                })
             })
             .collect();
         Ok(threads
@@ -30,18 +32,18 @@ pub fn search<'a>(
     })
     .unwrap();
 
-    let extensions_search_results =
-        search_results.map(|sr| sr.into_iter().zip(extensions.iter()).collect())?;
+    let extensions_search_results = search_results
+        .map(|search_result| search_result.into_iter().zip(extensions.iter()).collect())?;
     select_search_result(extensions_search_results)
 }
 
 /// Parses potentially multi-result search output. Handles no result or multiple result cases.
 fn select_search_result<'a>(
     extensions_search_results: Vec<(
-        Result<vouch_lib::extension::RemotePackageMetadata>,
+        Result<Vec<vouch_lib::extension::RegistryPackageMetadata>>,
         &'a Box<dyn vouch_lib::extension::Extension>,
     )>,
-) -> Result<vouch_lib::extension::RemotePackageMetadata> {
+) -> Result<Vec<vouch_lib::extension::RegistryPackageMetadata>> {
     let mut selection = Err(format_err!(
         "Extensions have failed to find package in remote package registries."
     ));

@@ -40,10 +40,13 @@ pub struct DependenciesSpec {
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct RemotePackageMetadata {
+pub struct RegistryPackageMetadata {
     pub registry_host_name: String,
     pub human_url: String,
     pub artifact_url: String,
+
+    // True if this registry is the primary registry, otherwise false.
+    pub is_primary: bool,
 }
 
 pub trait FromLib: Send + Sync {
@@ -74,9 +77,9 @@ pub trait Extension: Send + Sync {
     ) -> Result<Vec<DependenciesSpec>>;
 
     /// Query package registries for package metadata.
-    fn remote_package_metadata(
+    fn registries_package_metadata(
         &self,
         package_name: &str,
         package_version: &str,
-    ) -> Result<RemotePackageMetadata>;
+    ) -> Result<Vec<RegistryPackageMetadata>>;
 }

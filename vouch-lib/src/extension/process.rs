@@ -76,13 +76,14 @@ impl common::Extension for ProcessExtension {
     }
 
     /// Given a package name and version, queries the remote registry for package metadata.
-    fn remote_package_metadata(
+    fn registries_package_metadata(
         &self,
         package_name: &str,
         package_version: &str,
-    ) -> Result<common::RemotePackageMetadata> {
-        let args = vec!["remote-package-metadata", package_name, package_version];
-        let output: Box<common::RemotePackageMetadata> = run_process(&self.process_path_, &args)?;
+    ) -> Result<Vec<common::RegistryPackageMetadata>> {
+        let args = vec!["registries-package-metadata", package_name, package_version];
+        let output: Box<Vec<common::RegistryPackageMetadata>> =
+            run_process(&self.process_path_, &args)?;
         Ok(*output)
     }
 }

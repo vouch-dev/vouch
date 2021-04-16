@@ -300,13 +300,19 @@ fn ensure_package_setup(
     tx: &common::StoreTransaction,
 ) -> Result<(package::Package, review::workspace::Manifest)> {
     let remote_package_metadata = extension::search(&package_name, &package_version, &extensions)?;
+    let primary_registry = remote_package_metadata
+        .iter()
+        .find(|registry_metadata| registry_metadata.is_primary)
+        .ok_or(format_err!(
+            "Failed to find primary registry metadata from extension."
+        ))?;
 
     let package = package::index::get(
         &package::index::Fields {
             package_name: Some(&package_name),
             package_version: Some(&package_version),
             registry_host_names: Some(
-                maplit::btreeset! {remote_package_metadata.registry_host_name.as_str()},
+                maplit::btreeset! {primary_registry.registry_host_name.as_str()},
             ),
             ..Default::default()
         },
@@ -328,9 +334,9 @@ fn ensure_package_setup(
         }
         None => {
             let registry = registry::index::ensure(
-                &remote_package_metadata.registry_host_name,
-                &url::Url::parse(&remote_package_metadata.human_url)?,
-                &url::Url::parse(&remote_package_metadata.artifact_url)?,
+                &primary_registry.registry_host_name,
+                &url::Url::parse(&primary_registry.human_url)?,
+                &url::Url::parse(&primary_registry.artifact_url)?,
                 &tx,
             )?;
             let workspace_manifest = review::workspace::ensure(

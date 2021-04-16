@@ -23,7 +23,7 @@ pub fn run_command<T: common::Extension + std::fmt::Debug>(
     extension: &mut T,
 ) -> Result<()> {
     let local_dependencies =
-        extension.remote_package_metadata(&args.package_name, &args.package_version)?;
+        extension.registries_package_metadata(&args.package_name, &args.package_version)?;
     println!("{}", serde_json::to_string(&local_dependencies)?);
     Ok(())
 }
