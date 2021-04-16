@@ -2583,7 +2583,7 @@ checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 
 [[package]]
 name = "vouch"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2617,7 +2617,7 @@ dependencies = [
 
 [[package]]
 name = "vouch-js"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "handlebars",
@@ -2634,7 +2634,7 @@ dependencies = [
 
 [[package]]
 name = "vouch-lib"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "serde",
@@ -2646,7 +2646,7 @@ dependencies = [
 
 [[package]]
 name = "vouch-py"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "handlebars",

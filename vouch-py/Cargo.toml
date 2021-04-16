@@ -1,6 +1,6 @@
 [package]
 name = "vouch-py"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["rndhouse <rndhouse@protonmail.com>"]
 edition = "2018"
 repository = "https://github.com/vouch-dev/vouch"
@@ -16,7 +16,7 @@ name = "vouch-py"
 path = "src/bin.rs"
 
 [dependencies]
-vouch-lib = { path = "../vouch-lib", version = "0.2.2" }
+vouch-lib = { path = "../vouch-lib", version = "0.2.3" }
 
 anyhow = "1.0.31"
 structopt = "0.3.14"
