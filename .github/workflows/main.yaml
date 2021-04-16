@@ -38,10 +38,12 @@ jobs:
             target: x86_64-unknown-linux-musl
 
     steps:
-      - name: Get version from tag
-        id: get_version
+      - name: Set package metadata
+        id: meta
         shell: bash
-        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+        run: |
+          echo ::set-output name=NAME::vouch
+          echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
 
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -53,7 +55,7 @@ jobs:
         if: "contains(matrix.target, 'x86_64-unknown-linux-musl')"
         run: |
           docker pull clux/muslrust
-          docker run -v $PWD:/volume --rm -t clux/muslrust cargo build --release --all-features --locked --verbose --package vouch
+          docker run -v $PWD:/volume --rm -t clux/muslrust cargo build --release --all-features --locked --verbose --package ${{ steps.meta.outputs.NAME }}
 
       - name: Build non-musl
         if: "!contains(matrix.target, 'x86_64-unknown-linux-musl')"
@@ -62,12 +64,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --locked --all-features --verbose --package vouch --target ${{ matrix.target }}
+          args: --release --locked --all-features --verbose --package ${{ steps.meta.outputs.NAME }} --target ${{ matrix.target }}
 
       - name: Archive release assets
         id: archive_assets
         run: |
-          7z a -tzip ${{ github.workspace }}/vouch-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.zip ${{ github.workspace }}/target/${{ matrix.target }}/release/vouch* ${{ github.workspace }}/LICENSE
+          7z a -tzip ${{ github.workspace }}/${{ steps.meta.outputs.NAME }}-${{ steps.meta.outputs.VERSION }}-${{ matrix.target }}.zip ${{ github.workspace }}/target/${{ matrix.target }}/release/${{ steps.meta.outputs.NAME }}* ${{ github.workspace }}/LICENSE
 
       - name: Upload release archive
         id: upload_archive
@@ -76,6 +78,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.once.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/vouch-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.zip
-          asset_name: vouch-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.zip
+          asset_path: ${{ github.workspace }}/${{ steps.meta.outputs.NAME }}-${{ steps.meta.outputs.VERSION }}-${{ matrix.target }}.zip
+          asset_name: ${{ steps.meta.outputs.NAME }}-${{ steps.meta.outputs.VERSION }}-${{ matrix.target }}.zip
           asset_content_type: application/octet-stream
