@@ -1,6 +1,8 @@
 use anyhow::{format_err, Result};
 use directories;
 
+pub mod archive;
+
 /// Filesystem vouch config directory absolute paths.
 #[derive(Debug)]
 pub struct ConfigPaths {
