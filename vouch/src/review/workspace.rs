@@ -1,7 +1,8 @@
 use anyhow::{format_err, Context, Result};
 use std::io::Write;
+use std::convert::TryFrom;
 
-use crate::common;
+use crate::common::{self, fs::archive::ArchiveType};
 use crate::review;
 
 static MANIFEST_FILE_NAME: &str = "manifest.json";
@@ -33,22 +34,37 @@ pub fn ensure(
         return Ok(workspace_manifest);
     }
 
-    let file_extension = get_archive_file_extension(&artifact_url)?;
+    let archive_type =
+        common::fs::archive::ArchiveType::try_from(&std::path::PathBuf::from(artifact_url.path()))?;
+    if archive_type == ArchiveType::Unknown {
+        return Err(format_err!(
+            "Unsupported archive file type: {}",
+            artifact_url
+        ));
+    }
 
     let package_unique_directory =
         setup_unique_package_directory(&package_name, &package_version, &registry_host_name)?;
-    let archive_path = package_unique_directory.join(format!("package.{}", file_extension));
+    let archive_path =
+        package_unique_directory.join(format!("package.{}", archive_type.to_string()?));
 
     download_archive(&artifact_url, &archive_path)?;
     let (artifact_hash, _) = common::fs::hash(&archive_path)?;
 
     log::debug!("Extracting archive: {}", archive_path.display());
-    let workspace_directory = match file_extension.as_str() {
-        "zip" => common::fs::archive::extract_zip(&archive_path, &package_unique_directory)?,
-        "tgz" | "tar.gz" => {
+    let workspace_directory = match archive_type {
+        ArchiveType::Zip => {
+            common::fs::archive::extract_zip(&archive_path, &package_unique_directory)?
+        }
+        ArchiveType::Tgz | ArchiveType::TarGz => {
             common::fs::archive::extract_tar_gz(&archive_path, &package_unique_directory)?
         }
-        _ => unimplemented!("Unsupported archive file type: {}", file_extension),
+        ArchiveType::Unknown => {
+            return Err(format_err!(
+                "Archive extraction failed. Unsupported archive file type: {}",
+                artifact_url
+            ));
+        }
     };
     log::debug!("Archive extraction complete.");
     std::fs::remove_file(&archive_path)?;
@@ -109,30 +125,6 @@ pub fn get_existing(
     } else {
         Ok(None)
     }
-}
-
-/// Extract and return archive file extension from archive URL.
-fn get_archive_file_extension(artifact_url: &url::Url) -> Result<String> {
-    let path = std::path::Path::new(artifact_url.path());
-    if path
-        .to_str()
-        .ok_or(format_err!("Failed to parse URL path as str."))?
-        .ends_with(".tar.gz")
-    {
-        return Ok("tar.gz".to_string());
-    }
-
-    Ok(path
-        .extension()
-        .ok_or(format_err!(
-            "Failed to parse file extension from archive URL: {}",
-            artifact_url
-        ))?
-        .to_str()
-        .ok_or(format_err!(
-            "Failed to parse file extension unicode characters."
-        ))?
-        .to_owned())
 }
 
 fn get_unique_package_directory(
@@ -286,15 +278,6 @@ pub fn analyse(workspace_directory: &std::path::PathBuf) -> Result<Analysis> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_correct_extension_extracted_for_tar_gz() -> Result<()> {
-        let result =
-            get_archive_file_extension(&url::Url::parse("https://localhost/d3/d3-4.10.0.tar.gz")?)?;
-        let expected = "tar.gz".to_string();
-        assert!(result == expected);
-        Ok(())
-    }
 
     #[test]
     fn test_correct_directory_line_counts() -> Result<()> {

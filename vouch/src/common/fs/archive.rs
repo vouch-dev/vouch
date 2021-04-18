@@ -1,5 +1,78 @@
 use anyhow::{format_err, Result};
 
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+pub enum ArchiveType {
+    Zip,
+    TarGz,
+    Tgz,
+    Unknown,
+}
+
+impl std::convert::TryFrom<&std::path::PathBuf> for ArchiveType {
+    type Error = anyhow::Error;
+
+    fn try_from(path: &std::path::PathBuf) -> Result<Self, Self::Error> {
+        Ok(match get_file_extension(&path)?.as_str() {
+            "zip" => Self::Zip,
+            "tar.gz" => Self::TarGz,
+            "tgz" => Self::Tgz,
+            _ => Self::Unknown,
+        })
+    }
+}
+
+impl ArchiveType {
+    pub fn to_string(&self) -> Result<String> {
+        Ok(match self {
+            ArchiveType::Zip => "zip",
+            ArchiveType::TarGz => "tar.gz",
+            ArchiveType::Tgz => "tgz",
+            ArchiveType::Unknown => {
+                return Err(format_err!(
+                    "Failed to convert unknown archive type into string."
+                ))
+            }
+        }
+        .to_string())
+    }
+}
+
+/// Extract and return archive file extension from given path.
+fn get_file_extension(path: &std::path::PathBuf) -> Result<String> {
+    if path
+        .to_str()
+        .ok_or(format_err!("Failed to parse URL path as str."))?
+        .ends_with(".tar.gz")
+    {
+        return Ok("tar.gz".to_string());
+    }
+
+    Ok(path
+        .extension()
+        .ok_or(format_err!(
+            "Failed to parse file extension from path: {}",
+            path.display()
+        ))?
+        .to_str()
+        .ok_or(format_err!(
+            "Failed to parse file extension unicode characters."
+        ))?
+        .to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_correct_extension_extracted_for_tar_gz() -> Result<()> {
+        let result = get_file_extension(&std::path::PathBuf::from("/d3/d3-4.10.0.tar.gz"))?;
+        let expected = "tar.gz".to_string();
+        assert!(result == expected);
+        Ok(())
+    }
+}
+
 pub fn extract_zip(
     archive_path: &std::path::PathBuf,
     destination_directory: &std::path::PathBuf,
