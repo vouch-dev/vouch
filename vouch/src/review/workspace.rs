@@ -1,6 +1,6 @@
 use anyhow::{format_err, Context, Result};
-use std::io::Write;
 use std::convert::TryFrom;
+use std::io::Write;
 
 use crate::common::{self, fs::archive::ArchiveType};
 use crate::review;
@@ -48,7 +48,7 @@ pub fn ensure(
     let archive_path =
         package_unique_directory.join(format!("package.{}", archive_type.to_string()?));
 
-    download_archive(&artifact_url, &archive_path)?;
+    common::fs::archive::download(&artifact_url, &archive_path)?;
     let (artifact_hash, _) = common::fs::hash(&archive_path)?;
 
     log::debug!("Extracting archive: {}", archive_path.display());
@@ -157,22 +157,6 @@ fn setup_unique_package_directory(
         package_unique_directory.display()
     ))?;
     Ok(package_unique_directory)
-}
-
-fn download_archive(target_url: &url::Url, destination_path: &std::path::PathBuf) -> Result<()> {
-    log::debug!(
-        "Downloading archive to destination path: {}",
-        destination_path.display()
-    );
-
-    let response = reqwest::blocking::get(target_url.clone())?;
-    let mut file = std::fs::File::create(&destination_path)?;
-    let content = response.bytes()?;
-    file.write_all(&content)?;
-
-    log::debug!("Finished writing archive.");
-
-    Ok(())
 }
 
 fn get_workspace_directory_name(

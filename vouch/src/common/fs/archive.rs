@@ -1,4 +1,5 @@
 use anyhow::{format_err, Result};
+use std::io::Write;
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ArchiveType {
@@ -161,4 +162,20 @@ fn get_tar_top_directory_name(archive_path: &std::path::PathBuf) -> Result<Strin
         .ok_or(format_err!("Failed to parse archive's first path."))?;
 
     Ok(top_directory_name.to_string())
+}
+
+pub fn download(target_url: &url::Url, destination_path: &std::path::PathBuf) -> Result<()> {
+    log::debug!(
+        "Downloading archive to destination path: {}",
+        destination_path.display()
+    );
+
+    let response = reqwest::blocking::get(target_url.clone())?;
+    let mut file = std::fs::File::create(&destination_path)?;
+    let content = response.bytes()?;
+    file.write_all(&content)?;
+
+    log::debug!("Finished writing archive.");
+
+    Ok(())
 }
