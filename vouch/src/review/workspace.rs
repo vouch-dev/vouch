@@ -46,26 +46,14 @@ pub fn ensure(
     let package_unique_directory =
         setup_unique_package_directory(&package_name, &package_version, &registry_host_name)?;
     let archive_path =
-        package_unique_directory.join(format!("package.{}", archive_type.to_string()?));
+        package_unique_directory.join(format!("package.{}", archive_type.try_to_string()?));
 
     common::fs::archive::download(&artifact_url, &archive_path)?;
     let (artifact_hash, _) = common::fs::hash(&archive_path)?;
 
     log::debug!("Extracting archive: {}", archive_path.display());
-    let workspace_directory = match archive_type {
-        ArchiveType::Zip => {
-            common::fs::archive::extract_zip(&archive_path, &package_unique_directory)?
-        }
-        ArchiveType::Tgz | ArchiveType::TarGz => {
-            common::fs::archive::extract_tar_gz(&archive_path, &package_unique_directory)?
-        }
-        ArchiveType::Unknown => {
-            return Err(format_err!(
-                "Archive extraction failed. Unsupported archive file type: {}",
-                artifact_url
-            ));
-        }
-    };
+    let workspace_directory =
+        common::fs::archive::extract(&archive_path, &package_unique_directory)?;
     log::debug!("Archive extraction complete.");
     std::fs::remove_file(&archive_path)?;
 

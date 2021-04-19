@@ -1,4 +1,5 @@
 use anyhow::{format_err, Result};
+use std::convert::TryFrom;
 use std::io::Write;
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
@@ -23,7 +24,7 @@ impl std::convert::TryFrom<&std::path::PathBuf> for ArchiveType {
 }
 
 impl ArchiveType {
-    pub fn to_string(&self) -> Result<String> {
+    pub fn try_to_string(&self) -> Result<String> {
         Ok(match self {
             ArchiveType::Zip => "zip",
             ArchiveType::TarGz => "tar.gz",
@@ -74,7 +75,26 @@ mod tests {
     }
 }
 
-pub fn extract_zip(
+pub fn extract(
+    archive_path: &std::path::PathBuf,
+    destination_directory: &std::path::PathBuf,
+) -> Result<std::path::PathBuf> {
+    let archive_type = ArchiveType::try_from(archive_path)?;
+    Ok(match archive_type {
+        ArchiveType::Zip => extract_zip(&archive_path, &destination_directory)?,
+        ArchiveType::Tgz | ArchiveType::TarGz => {
+            extract_tar_gz(&archive_path, &destination_directory)?
+        }
+        ArchiveType::Unknown => {
+            return Err(format_err!(
+                "Archive extraction failed. Unsupported archive file type: {}",
+                archive_path.display()
+            ));
+        }
+    })
+}
+
+fn extract_zip(
     archive_path: &std::path::PathBuf,
     destination_directory: &std::path::PathBuf,
 ) -> Result<std::path::PathBuf> {
@@ -118,7 +138,7 @@ pub fn extract_zip(
 /// Extract .tar.gz archives.
 ///
 /// Note that .tgz archives are the same as .tar.gz archives.
-pub fn extract_tar_gz(
+fn extract_tar_gz(
     archive_path: &std::path::PathBuf,
     destination_directory: &std::path::PathBuf,
 ) -> Result<std::path::PathBuf> {
@@ -174,6 +194,7 @@ pub fn download(target_url: &url::Url, destination_path: &std::path::PathBuf) ->
     let mut file = std::fs::File::create(&destination_path)?;
     let content = response.bytes()?;
     file.write_all(&content)?;
+    file.sync_all()?;
 
     log::debug!("Finished writing archive.");
 
