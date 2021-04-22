@@ -161,29 +161,50 @@ pub fn update_config(config: &mut common::config::Config) -> Result<()> {
     log::debug!("Discover extensions and update config.");
 
     let extensions = get_all_extensions()?;
+    let extension_name_map: std::collections::BTreeMap<_, _> = extensions
+        .iter()
+        .map(|extension| (extension.name(), extension))
+        .collect();
 
-    let configured_names: std::collections::BTreeSet<String> = config
+    let all_found_names: std::collections::BTreeSet<_> =
+        extension_name_map.keys().cloned().collect();
+
+    let configured_names: std::collections::BTreeSet<_> = config
         .extensions
         .enabled
         .keys()
         .map(|name| name.clone())
         .collect();
-    let all_found_names: std::collections::BTreeSet<String> = extensions
-        .iter()
-        .map(|extension| extension.name())
-        .collect();
 
-    let stale_config_names: Vec<_> = configured_names.difference(&all_found_names).collect();
-    for name in &stale_config_names {
+    let stale_names: Vec<_> = configured_names.difference(&all_found_names).collect();
+    let registries_map = config.extensions.registries.clone();
+    for name in &stale_names {
         config.extensions.enabled.remove(name.clone());
+
+        // Update registries map.
+        for (registry, extension_name) in &registries_map {
+            if *extension_name == **name {
+                config.extensions.registries.remove(registry);
+            }
+        }
     }
 
-    let newly_found_names: Vec<_> = all_found_names.difference(&configured_names).collect();
-    for name in &newly_found_names {
-        config.extensions.enabled.insert((*name).clone(), true);
+    let new_names: Vec<_> = all_found_names.difference(&configured_names).collect();
+    for name in &new_names {
+        config.extensions.enabled.insert((**name).clone(), true);
+
+        // Update registries map.
+        if let Some(extension) = extension_name_map.get(name.as_str()) {
+            for registry in extension.registries() {
+                config
+                    .extensions
+                    .registries
+                    .insert(registry, (*name).clone());
+            }
+        }
     }
 
-    if !stale_config_names.is_empty() || !newly_found_names.is_empty() {
+    if !stale_names.is_empty() || !new_names.is_empty() {
         config.dump()?;
     }
     Ok(())
