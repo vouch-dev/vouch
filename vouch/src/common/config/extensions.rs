@@ -6,9 +6,7 @@ use anyhow::{format_err, Result};
 )]
 pub struct Extensions {
     pub enabled: std::collections::BTreeMap<String, bool>,
-
-    #[serde(rename = "supported-package-registries")]
-    pub supported_package_registries: std::collections::BTreeMap<String, String>,
+    pub registries: std::collections::BTreeMap<String, String>,
 }
 
 fn get_regex() -> Result<regex::Regex> {

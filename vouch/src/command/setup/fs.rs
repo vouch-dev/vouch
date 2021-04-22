@@ -140,7 +140,7 @@ fn setup_config(
             for registry in extension.registries() {
                 config
                     .extensions
-                    .supported_package_registries
+                    .registries
                     .insert(registry, extension.name());
             }
         }

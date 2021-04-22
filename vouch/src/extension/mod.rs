@@ -336,7 +336,7 @@ pub fn get_enabled_registry_host_names(
 ) -> Result<std::collections::HashSet<String>> {
     Ok(config
         .extensions
-        .supported_package_registries
+        .registries
         .iter()
         .filter(|(_host_name, extension_name)| extension_names.contains(*extension_name))
         .map(|(host_name, _extension_name)| host_name.clone())

@@ -218,7 +218,7 @@ fn filter_reviews(
     // Find registry host names which are handled by the given extensions.
     let enabled_registries: std::collections::BTreeSet<String> = config
         .extensions
-        .supported_package_registries
+        .registries
         .iter()
         .filter(|(_registry_host_name, extension_name)| {
             target_extension_names.contains(extension_name.as_str())
@@ -259,7 +259,7 @@ fn handle_multiple_matching_reviews(
         .collect();
     let extension_names: std::collections::BTreeSet<String> = config
         .extensions
-        .supported_package_registries
+        .registries
         .iter()
         .filter(|(registry_host_name, _extension_name)| {
             registry_host_names.contains(registry_host_name.as_str())
