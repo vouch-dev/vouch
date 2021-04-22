@@ -3,6 +3,7 @@ use structopt::{self, StructOpt};
 
 mod check;
 mod config;
+mod extension;
 mod peer;
 mod review;
 mod setup;
@@ -39,6 +40,11 @@ pub fn run_command(command: Command) -> Result<()> {
             setup::is_complete()?;
             config::run_command(&args)?;
         }
+        Command::Extension(args) => {
+            log::info!("Running command: extension");
+            setup::is_complete()?;
+            extension::run_subcommand(&args)?;
+        }
     }
     Ok(())
 }
@@ -70,6 +76,10 @@ pub enum Command {
     /// Configure settings.
     #[structopt(name = "config")]
     Config(config::Arguments),
+
+    /// Manage extensions.
+    #[structopt(name = "extension")]
+    Extension(extension::Subcommands),
 }
 
 #[derive(Debug, StructOpt, Clone)]

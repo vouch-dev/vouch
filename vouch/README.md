@@ -16,6 +16,16 @@ First, lets setup Vouch. During setup we can optionally specify a git repository
 
 `vouch setup https://github.com/<username>/reviews`
 
+### Extensions
+
+Extensions enable Vouch to create reviews for packages from different ecosystems. For example, the [Python extension](https://github.com/vouch-dev/vouch-py) adds support for [pypi.org](https://pypi.org) packages. By default, Vouch includes extensions for Python and Javascript. Add an extension using the following command:
+
+`vouch extension add py`
+
+or via any GitHub repository URL:
+
+`vouch extension add https://github.com/vouch-dev/vouch-py`
+
 ### Review
 
 (Note: Vouch currently requires [VSCode](https://code.visualstudio.com/) to create reviews.)

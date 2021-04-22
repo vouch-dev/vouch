@@ -51,10 +51,7 @@ fn get_file_extension(path: &std::path::PathBuf) -> Result<String> {
 
     Ok(path
         .extension()
-        .ok_or(format_err!(
-            "Failed to parse file extension from path: {}",
-            path.display()
-        ))?
+        .unwrap_or(std::ffi::OsString::from("").as_os_str())
         .to_str()
         .ok_or(format_err!(
             "Failed to parse file extension unicode characters."

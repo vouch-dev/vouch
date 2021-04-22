@@ -5,7 +5,9 @@ use vouch_lib::extension::{FromLib, FromProcess};
 
 use crate::common;
 
-static EXTENSION_FILE_NAME_PREFIX: &str = "vouch-";
+pub mod manage;
+
+pub static EXTENSION_FILE_NAME_PREFIX: &str = "vouch-";
 
 /// Search package registries via extensions for package metadata from registries.
 ///
@@ -103,6 +105,15 @@ pub fn get_enabled_names(config: &common::config::Config) -> Result<BTreeSet<Str
         .collect())
 }
 
+pub fn get_all_names(config: &common::config::Config) -> Result<BTreeSet<String>> {
+    Ok(config
+        .extensions
+        .enabled
+        .iter()
+        .map(|(name, _enabled_flag)| name.clone())
+        .collect())
+}
+
 /// Given an extension's name, returns true if the extension is enabled. Otherwise returns false.
 pub fn is_enabled(name: &str, config: &common::config::Config) -> Result<bool> {
     Ok(*config.extensions.enabled.get(name).unwrap_or(&false))
@@ -178,14 +189,9 @@ pub fn update_config(config: &mut common::config::Config) -> Result<()> {
     Ok(())
 }
 
-fn get_extension_paths() -> Result<HashMap<String, std::path::PathBuf>> {
+pub fn get_extension_paths() -> Result<HashMap<String, std::path::PathBuf>> {
     let mut result: HashMap<String, std::path::PathBuf> = HashMap::new();
-
-    let env_path_value =
-        std::env::var_os("PATH").ok_or(format_err!("Failed to read PATH enviroment variable."))?;
-    let paths = std::env::split_paths(&env_path_value);
-
-    for path in paths {
+    for path in get_candidate_extension_paths()? {
         // Skip non-valid paths.
         if !path.is_dir() && !path.is_file() {
             continue;
@@ -217,6 +223,19 @@ fn get_extension_paths() -> Result<HashMap<String, std::path::PathBuf>> {
         }
     }
     Ok(result)
+}
+
+fn get_candidate_extension_paths() -> Result<Vec<std::path::PathBuf>> {
+    let env_path_value =
+        std::env::var_os("PATH").ok_or(format_err!("Failed to read PATH environment variable."))?;
+    let mut paths = std::env::split_paths(&env_path_value).collect::<Vec<_>>();
+
+    if let Some(extensions_home_directory) = common::fs::get_extensions_default_directory() {
+        if extensions_home_directory.exists() {
+            paths.push(extensions_home_directory);
+        }
+    }
+    Ok(paths)
 }
 
 fn get_extension_name(file_path: &std::path::PathBuf) -> Result<Option<String>> {
@@ -293,7 +312,7 @@ pub fn get_process_extensions() -> Result<Vec<vouch_lib::extension::process::Pro
     Ok(valid_extensions)
 }
 
-fn get_extension_config_path(extension_name: &str) -> Result<std::path::PathBuf> {
+pub fn get_extension_config_path(extension_name: &str) -> Result<std::path::PathBuf> {
     let config_paths = crate::common::fs::ConfigPaths::new()?;
     Ok(config_paths.extensions_directory.join(format!(
         "{extension_name}.yaml",
@@ -349,4 +368,26 @@ pub fn handle_extension_names_arg(
     };
     log::debug!("Using extensions: {:?}", names);
     Ok(names)
+}
+
+/// Enable extension.
+pub fn enable(name: &str, config: &mut common::config::Config) -> Result<()> {
+    if let Some(enabled_status) = config.extensions.enabled.get_mut(&name.to_string()) {
+        *enabled_status = true;
+        config.dump()?;
+        Ok(())
+    } else {
+        Err(format_err!("Failed to find extension."))
+    }
+}
+
+/// Disable extension.
+pub fn disable(name: &str, config: &mut common::config::Config) -> Result<()> {
+    if let Some(enabled_status) = config.extensions.enabled.get_mut(&name.to_string()) {
+        *enabled_status = false;
+        config.dump()?;
+        Ok(())
+    } else {
+        Err(format_err!("Failed to find extension."))
+    }
 }

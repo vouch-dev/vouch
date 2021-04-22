@@ -24,7 +24,9 @@ maplit = "1.0.2"
 dialoguer = "0.7.1"
 
 directories = "3.0.1"
+dirs = "3.0.1"
 tempdir = "0.3.7"
+shellexpand = "2.1.0"
 git2 = "0.13.6"
 
 url = { version = "2.1.1", features = ["serde"] }
@@ -43,3 +45,6 @@ tar = "0.4.33"
 
 tokei = "12.1.2"
 prettytable-rs = "0.8.0"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9" }

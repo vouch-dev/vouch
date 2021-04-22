@@ -4,13 +4,15 @@
 //! The number of data structures in this module should be minimized. The data structures
 //! should be as simple as possible.
 //!
-//! Print statements are prohibited whithin this module. Logging is allowed.
+//! Print statements are prohibited within this module. Logging is allowed.
 use anyhow::Result;
 use std::convert::TryFrom;
 
 pub mod config;
 pub mod fs;
 pub mod index;
+
+pub static HTTP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 pub struct StoreTransaction<'a> {
     index_transaction: rusqlite::Transaction<'a>,
