@@ -23,7 +23,7 @@ pub fn report(
     )?;
     if reviews.is_empty() {
         println!("No reviews found.");
-        let disabled_extension_names = extension::get_disabled_extension_names(&config)?;
+        let disabled_extension_names = extension::manage::get_disabled_names(&config)?;
         if !disabled_extension_names.is_empty() {
             println!(
                 "Consider enabling some of these extensions: {}",
@@ -91,7 +91,7 @@ fn get_package_reviews(
     tx: &StoreTransaction,
 ) -> Result<std::collections::BTreeSet<review::Review>> {
     let registry_host_names =
-        extension::get_enabled_registry_host_names(&extension_names, &config)?;
+        extension::manage::get_enabled_registry_host_names(&extension_names, &config)?;
     let registry_host_names = registry_host_names
         .iter()
         .map(|host_name| host_name.as_str())

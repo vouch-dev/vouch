@@ -37,11 +37,12 @@ pub fn run_command(args: &Arguments) -> Result<()> {
     // TODO: Add gpg signing.
 
     let mut config = common::config::Config::load()?;
-    extension::update_config(&mut config)?;
+    extension::manage::update_config(&mut config)?;
     review::tool::check_install(&mut config)?;
     let config = config;
 
-    let extension_names = extension::handle_extension_names_arg(&args.extension_names, &config)?;
+    let extension_names =
+        extension::manage::handle_extension_names_arg(&args.extension_names, &config)?;
 
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;
@@ -284,7 +285,7 @@ fn setup_new_review(
     config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<(review::Review, review::workspace::Manifest)> {
-    let extensions = extension::get_enabled_extensions(&extension_names, &config)?;
+    let extensions = extension::manage::get_enabled(&extension_names, &config)?;
     let (package, workspace_manifest) =
         ensure_package_setup(&package_name, &package_version, &extensions, &tx)?;
     let review = get_insert_empty_review(&package, &tx)?;
@@ -299,7 +300,8 @@ fn ensure_package_setup(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     tx: &common::StoreTransaction,
 ) -> Result<(package::Package, review::workspace::Manifest)> {
-    let remote_package_metadata = extension::search(&package_name, &package_version, &extensions)?;
+    let remote_package_metadata =
+        extension::search_registries(&package_name, &package_version, &extensions)?;
     let primary_registry = remote_package_metadata
         .iter()
         .find(|registry_metadata| registry_metadata.is_primary)

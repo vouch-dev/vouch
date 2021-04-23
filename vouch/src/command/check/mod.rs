@@ -33,9 +33,10 @@ pub struct Arguments {
 
 pub fn run_command(args: &Arguments) -> Result<()> {
     let mut config = common::config::Config::load()?;
-    extension::update_config(&mut config)?;
+    extension::manage::update_config(&mut config)?;
     let config = config;
-    let extension_names = extension::handle_extension_names_arg(&args.extension_names, &config)?;
+    let extension_names =
+        extension::manage::handle_extension_names_arg(&args.extension_names, &config)?;
 
     let mut store = store::Store::from_root()?;
     let tx = store.get_transaction()?;

@@ -12,7 +12,7 @@ pub fn report(
     config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<()> {
-    let extensions = extension::get_enabled_extensions(&extension_names, &config)?;
+    let extensions = extension::manage::get_enabled(&extension_names, &config)?;
     let working_directory = std::env::current_dir()?;
     log::debug!("Current working directory: {}", working_directory.display());
 

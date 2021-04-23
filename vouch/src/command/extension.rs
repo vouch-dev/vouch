@@ -90,13 +90,13 @@ fn add(args: &AddArguments) -> Result<()> {
         }
     } else {
         log::debug!("Identified argument as name.");
-        let name = clean_extension_name(&args.name_or_url);
+        let name = extension::manage::clean_name(&args.name_or_url);
         let url = get_url_from_name(&name)?;
         extension::manage::add_from_url(&url, &bin_directory)?
     };
 
     let mut config = common::config::Config::load()?;
-    extension::update_config(&mut config)?;
+    extension::manage::update_config(&mut config)?;
 
     println!("Added extension: {}", extension_name);
     Ok(())
@@ -154,47 +154,12 @@ pub struct RemoveArguments {
 
 fn remove(args: &RemoveArguments) -> Result<()> {
     let mut config = common::config::Config::load()?;
-    extension::update_config(&mut config)?;
+    extension::manage::update_config(&mut config)?;
 
-    let name = clean_extension_name(&args.name);
-    let all_extension_names = extension::get_all_names(&config)?;
-    if !all_extension_names.contains(&name) {
-        return Err(format_err!(
-            "Failed to find extension. Known extensions: {}",
-            all_extension_names
-                .into_iter()
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
-
-    // Remove extension specific config file.
-    let path = extension::get_extension_config_path(&name)?;
-    if path.is_file() {
-        log::info!("Removing extension config file: {}", path.display());
-        std::fs::remove_file(&path)?;
-    }
-
-    // Remove extension process file.
-    let extension_paths = extension::get_extension_paths()?;
-    if let Some(path) = extension_paths.get(&name) {
-        log::info!("Deleting extension bin file: {}", path.display());
-        std::fs::remove_file(&path)?;
-    }
-
-    extension::update_config(&mut config)?;
+    let name = extension::manage::clean_name(&args.name);
+    extension::manage::remove(&name)?;
     println!("Removed extension: {}", name);
     Ok(())
-}
-
-/// Clean extension name.
-///
-/// Example: vouch-py --> py
-fn clean_extension_name(name: &str) -> String {
-    match &name.strip_prefix(extension::EXTENSION_FILE_NAME_PREFIX) {
-        Some(name) => name.to_string(),
-        None => name.to_string(),
-    }
 }
 
 #[derive(Debug, StructOpt, Clone)]
@@ -210,10 +175,10 @@ pub struct EnableArguments {
 
 fn enable(args: &EnableArguments) -> Result<()> {
     let mut config = common::config::Config::load()?;
-    extension::update_config(&mut config)?;
+    extension::manage::update_config(&mut config)?;
 
-    let name = clean_extension_name(&args.name);
-    let all_extension_names = extension::get_all_names(&config)?;
+    let name = extension::manage::clean_name(&args.name);
+    let all_extension_names = extension::manage::get_all_names(&config)?;
     if !all_extension_names.contains(&name) {
         return Err(format_err!(
             "Failed to find extension. Known extensions: {}",
@@ -224,7 +189,7 @@ fn enable(args: &EnableArguments) -> Result<()> {
         ));
     }
 
-    extension::enable(&name, &mut config)?;
+    extension::manage::enable(&name, &mut config)?;
     println!("Enabled extension: {}", name);
     Ok(())
 }
@@ -242,10 +207,10 @@ pub struct DisableArguments {
 
 fn disable(args: &DisableArguments) -> Result<()> {
     let mut config = common::config::Config::load()?;
-    extension::update_config(&mut config)?;
+    extension::manage::update_config(&mut config)?;
 
-    let name = clean_extension_name(&args.name);
-    let all_extension_names = extension::get_all_names(&config)?;
+    let name = extension::manage::clean_name(&args.name);
+    let all_extension_names = extension::manage::get_all_names(&config)?;
     if !all_extension_names.contains(&name) {
         return Err(format_err!(
             "Failed to find extension. Known extensions: {}",
@@ -256,7 +221,7 @@ fn disable(args: &DisableArguments) -> Result<()> {
         ));
     }
 
-    extension::disable(&name, &mut config)?;
+    extension::manage::disable(&name, &mut config)?;
     println!("Disabled extension: {}", name);
     Ok(())
 }

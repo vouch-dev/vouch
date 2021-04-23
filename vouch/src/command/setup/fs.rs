@@ -133,19 +133,7 @@ fn setup_config(
         config.core.notify_vouch_public_sync = true;
         config.review_tool.name = "vscode".to_string();
         config.review_tool.install_check = false;
-
-        for extension in extension::get_all_extensions()? {
-            config.extensions.enabled.insert(extension.name(), true);
-
-            for registry in extension.registries() {
-                config
-                    .extensions
-                    .registries
-                    .insert(registry, extension.name());
-            }
-        }
-
-        config.dump()?;
+        extension::manage::update_config(&mut config)?;
     } else {
         log::debug!(
             "Not overwriting existing config file (--force: {:?}): {}",
