@@ -38,6 +38,20 @@ jobs:
             target: x86_64-unknown-linux-musl
 
     steps:
+      - uses: actions/checkout@v2
+
+      - name: Get vouch-py
+        uses: actions/checkout@v2
+        with:
+          repository: 'vouch-dev/vouch-py'
+          fetch-depth: 1
+          path: vouch-py
+
+      - name: Set vouch-py symlink
+        shell: bash
+        run: |
+          ln -s "$(pwd)/vouch-py" ../vouch-py;
+
       - name: Set package metadata
         id: meta
         shell: bash
@@ -45,7 +59,6 @@ jobs:
           echo ::set-output name=NAME::vouch
           echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
 
-      - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -55,7 +68,7 @@ jobs:
         if: "contains(matrix.target, 'x86_64-unknown-linux-musl')"
         run: |
           docker pull clux/muslrust
-          docker run -v $PWD:/volume --rm -t clux/muslrust cargo build --release --all-features --locked --verbose --package ${{ steps.meta.outputs.NAME }}
+          docker run -v $(dirname `pwd`):/volume -v $(pwd)/vouch-py:/volume/vouch-py -w /volume/vouch --rm -t clux/muslrust cargo build --release --all-features --locked --verbose --package ${{ steps.meta.outputs.NAME }}
 
       - name: Build non-musl
         if: "!contains(matrix.target, 'x86_64-unknown-linux-musl')"

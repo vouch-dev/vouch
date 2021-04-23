@@ -1,6 +1,5 @@
 use anyhow::{format_err, Result};
 use std::convert::TryFrom;
-use std::os::unix::fs::PermissionsExt;
 
 use crate::common::config::Config;
 use crate::extension::{common, process};
@@ -69,6 +68,7 @@ fn ensure_executable_permissions(path: &std::path::PathBuf) -> Result<()> {
         "Setting executable permissions to 755 for file: {}",
         path.display()
     );
+    use std::os::unix::fs::PermissionsExt;
     let permissions = std::fs::Permissions::from_mode(0o755);
     std::fs::set_permissions(&path, permissions)?;
     Ok(())
