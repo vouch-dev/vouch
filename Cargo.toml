@@ -2,5 +2,4 @@
 members = [
 	"vouch",
 	"vouch-lib",
-	"vouch-js",
 ]
