@@ -76,8 +76,9 @@ pub fn extract(
     archive_path: &std::path::PathBuf,
     destination_directory: &std::path::PathBuf,
 ) -> Result<std::path::PathBuf> {
+    log::debug!("Extracting archive: {}", archive_path.display());
     let archive_type = ArchiveType::try_from(archive_path)?;
-    Ok(match archive_type {
+    let workspace_directory = match archive_type {
         ArchiveType::Zip => extract_zip(&archive_path, &destination_directory)?,
         ArchiveType::Tgz | ArchiveType::TarGz => {
             extract_tar_gz(&archive_path, &destination_directory)?
@@ -88,7 +89,12 @@ pub fn extract(
                 archive_path.display()
             ));
         }
-    })
+    };
+    log::debug!(
+        "Archive extraction complete. Workspace directory: {}",
+        workspace_directory.display()
+    );
+    Ok(workspace_directory)
 }
 
 fn extract_zip(
@@ -140,18 +146,49 @@ fn extract_tar_gz(
     destination_directory: &std::path::PathBuf,
 ) -> Result<std::path::PathBuf> {
     let top_directory_name = get_tar_top_directory_name(&archive_path)?;
-    log::debug!(
-        "Found archive top level directory name: {}",
-        top_directory_name
-    );
 
     let file = std::fs::File::open(archive_path)?;
     let decoder = flate2::read::GzDecoder::new(file);
     let mut archive = tar::Archive::new(decoder);
-
-    let workspace_directory = destination_directory.join(top_directory_name);
-
     archive.unpack(&destination_directory)?;
+
+    let workspace_directory = if let Some(top_directory_name) = top_directory_name {
+        log::debug!(
+            "Found archive top level directory name: {}",
+            top_directory_name
+        );
+        let workspace_directory = destination_directory.join(top_directory_name);
+        workspace_directory
+    } else {
+        log::debug!("Archive top level directory not found. Creating stand-in.");
+
+        // Create temporary workspace directory with unique name.
+        let uuid = uuid::Uuid::new_v4();
+        let mut encode_buffer = uuid::Uuid::encode_buffer();
+        let uuid = uuid.to_hyphenated().encode_lower(&mut encode_buffer);
+        let workspace_directory_name = "vouch-workspace-".to_string() + uuid;
+
+        let workspace_directory = destination_directory.join(workspace_directory_name);
+        std::fs::create_dir(&workspace_directory)?;
+
+        let paths = std::fs::read_dir(destination_directory)?;
+        for path in paths {
+            let file_name = path?.file_name();
+            let path = destination_directory.join(&file_name);
+            if path == workspace_directory || &path == archive_path {
+                continue;
+            }
+            std::fs::rename(&path, workspace_directory.join(&file_name))?;
+        }
+
+        workspace_directory
+    };
+
+    log::debug!(
+        "Using workspace directory: {}",
+        workspace_directory.display()
+    );
+
     Ok(workspace_directory)
 }
 
@@ -159,7 +196,7 @@ fn extract_tar_gz(
 ///
 /// This function advances the archive's position counter.
 /// The archive can not be unpacked after this operation, it is therefore dropped.
-fn get_tar_top_directory_name(archive_path: &std::path::PathBuf) -> Result<String> {
+fn get_tar_top_directory_name(archive_path: &std::path::PathBuf) -> Result<Option<String>> {
     let file = std::fs::File::open(archive_path)?;
     let decoder = flate2::read::GzDecoder::new(file);
     let mut archive = tar::Archive::new(decoder);
@@ -178,7 +215,11 @@ fn get_tar_top_directory_name(archive_path: &std::path::PathBuf) -> Result<Strin
         .to_str()
         .ok_or(format_err!("Failed to parse archive's first path."))?;
 
-    Ok(top_directory_name.to_string())
+    Ok(if top_directory_name == "/" {
+        None
+    } else {
+        Some(top_directory_name.to_string())
+    })
 }
 
 pub fn download(target_url: &url::Url, destination_path: &std::path::PathBuf) -> Result<()> {

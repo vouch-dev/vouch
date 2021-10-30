@@ -51,10 +51,8 @@ pub fn ensure(
     common::fs::archive::download(&artifact_url, &archive_path)?;
     let (artifact_hash, _) = common::fs::hash(&archive_path)?;
 
-    log::debug!("Extracting archive: {}", archive_path.display());
     let workspace_directory =
         common::fs::archive::extract(&archive_path, &package_unique_directory)?;
-    log::debug!("Archive extraction complete.");
     std::fs::remove_file(&archive_path)?;
 
     let workspace_directory = normalize_workspace_directory_name(
@@ -79,6 +77,10 @@ fn get_manifest_path(package_unique_directory: &std::path::PathBuf) -> std::path
 }
 
 fn write_manifest(workspace_manifest: &Manifest) -> Result<()> {
+    log::debug!(
+        "Writing workspace manifest: {}",
+        workspace_manifest.manifest_path.display()
+    );
     let path = &workspace_manifest.manifest_path;
     let mut file = std::fs::OpenOptions::new()
         .write(true)
@@ -167,6 +169,11 @@ fn normalize_workspace_directory_name(
         &package_name,
         &package_version,
     )?);
+    log::debug!(
+        "Normalize workspace directory name: {}, {}",
+        workspace_directory.display(),
+        target_directory.display(),
+    );
     std::fs::rename(workspace_directory, &target_directory)?;
     Ok(target_directory)
 }
