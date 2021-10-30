@@ -3,7 +3,7 @@ use anyhow::Result;
 use structopt::{self, StructOpt};
 
 mod identify_local_dependencies;
-mod remote_package_metadata;
+mod registries_package_metadata;
 mod static_data;
 
 #[derive(Debug, StructOpt, Clone)]
@@ -16,9 +16,9 @@ enum Command {
     #[structopt(name = "identify-local-dependencies")]
     IdentifyLocalDependencies(identify_local_dependencies::Arguments),
 
-    /// Get remote package metadata.
-    #[structopt(name = "remote-package-metadata")]
-    RemotePackageMetadata(remote_package_metadata::Arguments),
+    /// Get package metadata from registries.
+    #[structopt(name = "registries-package-metadata")]
+    RegistriesPackageMetadata(registries_package_metadata::Arguments),
 }
 
 fn run_command<T: common::Extension + std::fmt::Debug>(
@@ -34,8 +34,8 @@ fn run_command<T: common::Extension + std::fmt::Debug>(
             identify_local_dependencies::run_command(&args, extension)?;
         }
 
-        Command::RemotePackageMetadata(args) => {
-            remote_package_metadata::run_command(&args, extension)?;
+        Command::RegistriesPackageMetadata(args) => {
+            registries_package_metadata::run_command(&args, extension)?;
         }
     }
     Ok(())

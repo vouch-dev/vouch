@@ -43,7 +43,7 @@ fn select_search_result<'a>(
     )>,
 ) -> Result<Vec<vouch_lib::extension::RegistryPackageMetadata>> {
     let mut selection = Err(format_err!(
-        "Extensions have failed to find package in remote package registries."
+        "Extensions have failed to find package in package registries."
     ));
     let mut ok_extension_names = Vec::<_>::new();
 
