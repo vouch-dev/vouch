@@ -30,6 +30,14 @@ or via any GitHub repository URL:
 
 `vouch extension add https://github.com/vouch-dev/vouch-py`
 
+#### Official Extensions
+
+| Name                                                        | Ecosystem      | Package Registries |
+|-------------------------------------------------------------|----------------|--------------------|
+| [vouch-py](https://github.com/vouch-dev/vouch-py)           | Python         | pypi.org           |
+| [vouch-js](https://github.com/vouch-dev/vouch-js)           | Javascript     | npmjs.com          |
+| [vouch-ansible](https://github.com/vouch-dev/vouch-ansible) | Ansible Galaxy | galaxy.ansible.com |
+
 ### Review
 
 (Note: Vouch currently requires [VSCode](https://code.visualstudio.com/) to create reviews.)

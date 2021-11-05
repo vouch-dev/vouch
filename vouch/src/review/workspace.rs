@@ -18,6 +18,19 @@ pub struct Manifest {
     pub artifact_hash: String,
 }
 
+/// Create unique archive file name.
+fn archive_file_name(archive_type: common::fs::archive::ArchiveType) -> Result<String> {
+    // Create temporary workspace directory with unique name.
+    let uuid = uuid::Uuid::new_v4();
+    let mut encode_buffer = uuid::Uuid::encode_buffer();
+    let uuid = uuid.to_hyphenated().encode_lower(&mut encode_buffer);
+    Ok(format!(
+        "archive-{}.{}",
+        uuid,
+        archive_type.try_to_string()?
+    ))
+}
+
 /// Ensure review workspace setup is complete.
 ///
 /// Download and unpack package for review.
@@ -45,8 +58,7 @@ pub fn ensure(
 
     let package_unique_directory =
         setup_unique_package_directory(&package_name, &package_version, &registry_host_name)?;
-    let archive_path =
-        package_unique_directory.join(format!("package.{}", archive_type.try_to_string()?));
+    let archive_path = package_unique_directory.join(archive_file_name(archive_type)?);
 
     common::fs::archive::download(&artifact_url, &archive_path)?;
     let (artifact_hash, _) = common::fs::hash(&archive_path)?;
