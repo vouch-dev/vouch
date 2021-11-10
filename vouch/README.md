@@ -1,10 +1,10 @@
+<h1 align="center">Vouch</h1>
+
+<p align="center">🔍 A multi-ecosystem distributed package review system. 🔍</p>
+
 <p align="center">
   <a href="https://matrix.to/#/#vouch:matrix.org"><img src="https://img.shields.io/matrix/vouch:matrix.org?label=chat&logo=matrix" alt="Matrix"></a>
 </p>
-
-# vouch
-
-> A multi-ecosystem distributed package review system.
 
 ## Introduction
 
