@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="Vouch" width="150" height="150" />
+</p>
+
 <h1 align="center">Vouch</h1>
 
 <p align="center">🔍 A multi-ecosystem distributed package review system. 🔍</p>
