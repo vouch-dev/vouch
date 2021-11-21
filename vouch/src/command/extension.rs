@@ -17,6 +17,9 @@ pub enum Subcommands {
 
     /// Disable extension without deleting.
     Disable(DisableArguments),
+
+    /// List installed extensions.
+    List(ListArguments),
 }
 
 pub fn run_subcommand(subcommand: &Subcommands) -> Result<()> {
@@ -36,6 +39,10 @@ pub fn run_subcommand(subcommand: &Subcommands) -> Result<()> {
         Subcommands::Disable(args) => {
             log::info!("Running command: extension disable");
             disable(&args)?;
+        }
+        Subcommands::List(args) => {
+            log::info!("Running command: extension list");
+            list(&args)?;
         }
     }
     Ok(())
@@ -223,5 +230,22 @@ fn disable(args: &DisableArguments) -> Result<()> {
 
     extension::manage::disable(&name, &mut config)?;
     println!("Disabled extension: {}", name);
+    Ok(())
+}
+
+#[derive(Debug, StructOpt, Clone)]
+#[structopt(
+    name = "no_version",
+    no_version,
+    global_settings = &[structopt::clap::AppSettings::DisableVersion]
+)]
+pub struct ListArguments {}
+
+fn list(_args: &ListArguments) -> Result<()> {
+    let mut config = common::config::Config::load()?;
+    extension::manage::update_config(&mut config)?;
+    for name in extension::manage::get_all_names(&config)? {
+        println!("{}", name);
+    }
     Ok(())
 }
