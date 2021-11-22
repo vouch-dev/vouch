@@ -5,7 +5,7 @@ authors = ["rndhouse <rndhouse@protonmail.com>"]
 edition = "2018"
 repository = "https://github.com/vouch-dev/vouch"
 license = "MIT"
-description = "Core library for the Vouch package review system."
+description = "Core library for the Vouch package code review system."
 
 [dependencies]
 anyhow = "1.0.31"
