@@ -44,9 +44,10 @@ pub struct RegistryPackageMetadata {
     pub registry_host_name: String,
     pub human_url: String,
     pub artifact_url: String,
-
     // True if this registry is the primary registry, otherwise false.
     pub is_primary: bool,
+    // Included here incase package version was not given but found.
+    pub package_version: String,
 }
 
 pub trait FromLib: Extension + Send + Sync {
@@ -83,6 +84,6 @@ pub trait Extension: Send + Sync {
     fn registries_package_metadata(
         &self,
         package_name: &str,
-        package_version: &str,
+        package_version: &Option<&str>,
     ) -> Result<Vec<RegistryPackageMetadata>>;
 }

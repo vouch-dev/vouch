@@ -25,7 +25,7 @@ pub struct Arguments {
 
     /// Package version.
     #[structopt(name = "package-version")]
-    pub package_version: String,
+    pub package_version: Option<String>,
 
     /// Specify an extension for handling the package.
     /// Example values: py, js, rs
@@ -122,11 +122,26 @@ enum ReviewEditMode {
 /// Setup review for editing.
 fn setup_review(
     package_name: &str,
-    package_version: &str,
+    package_version: &Option<String>,
     extension_names: &std::collections::BTreeSet<String>,
     config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<(review::Review, ReviewEditMode, review::workspace::Manifest)> {
+    let extensions = extension::manage::get_enabled(&extension_names, &config)?;
+
+    // Get latest package version if none given.
+    let mut package_version: Option<String> = package_version.clone();
+    let mut registry_metadata: Option<vouch_lib::extension::RegistryPackageMetadata> = None;
+    if package_version.is_none() {
+        let (version, r) = get_latest_package_version(package_name, &extensions)?;
+        package_version = Some(version);
+        registry_metadata = Some(r);
+    }
+
+    let package_version = package_version.ok_or(format_err!(
+        "No package version given. Failed to find latest package version."
+    ))?;
+
     if let Some((review, workspace_manifest)) = setup_existing_review(
         &package_name,
         &package_version,
@@ -141,12 +156,28 @@ fn setup_review(
         let (review, workspace_directory) = setup_new_review(
             &package_name,
             &package_version,
+            &registry_metadata,
             &extension_names,
             &config,
             &tx,
         )?;
         Ok((review, ReviewEditMode::Create, workspace_directory))
     }
+}
+
+fn get_latest_package_version(
+    package_name: &str,
+    extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
+) -> Result<(String, vouch_lib::extension::RegistryPackageMetadata)> {
+    let remote_package_metadata = extension::search_registries(&package_name, &None, &extensions)?;
+    let primary_registry = remote_package_metadata
+        .iter()
+        .find(|registry_metadata| registry_metadata.is_primary)
+        .ok_or(format_err!(
+            "Failed to find primary registry metadata from extension."
+        ))?;
+    let package_version = primary_registry.package_version.clone();
+    Ok((package_version, primary_registry.clone()))
 }
 
 // Setup existing review for editing.
@@ -173,14 +204,16 @@ fn setup_existing_review(
     // TODO: Include filter in above get call.
 
     log::debug!("Count existing matching reviews: {}", reviews.len());
-    let reviews = filter_reviews(&reviews, &extension_names, &config)?;
+    let reviews = filter_on_ecosystems(&reviews, &extension_names, &config)?;
     log::debug!(
         "Count existing matching reviews post filtering: {}",
         reviews.len()
     );
 
+    // TODO: count number of different ecosystems in found reviews.
+
     if reviews.len() > 1 {
-        handle_multiple_matching_reviews(&reviews, &config)?;
+        multiple_matching_ecosystems(&reviews, &config)?;
         return Ok(None);
     }
 
@@ -211,7 +244,7 @@ fn get_primary_registry<'a>(package: &'a package::Package) -> Result<&'a registr
 }
 
 /// Filter reviews on given extension.
-fn filter_reviews(
+fn filter_on_ecosystems(
     reviews: &Vec<review::Review>,
     target_extension_names: &BTreeSet<String>,
     config: &common::config::Config,
@@ -241,7 +274,7 @@ fn filter_reviews(
 }
 
 /// Request extension specification when multiple matching reviews found.
-fn handle_multiple_matching_reviews(
+fn multiple_matching_ecosystems(
     reviews: &Vec<review::Review>,
     config: &common::config::Config,
 ) -> Result<()> {
@@ -281,13 +314,19 @@ fn handle_multiple_matching_reviews(
 fn setup_new_review(
     package_name: &str,
     package_version: &str,
+    registry_metadata: &Option<vouch_lib::extension::RegistryPackageMetadata>,
     extension_names: &BTreeSet<String>,
     config: &common::config::Config,
     tx: &StoreTransaction,
 ) -> Result<(review::Review, review::workspace::Manifest)> {
     let extensions = extension::manage::get_enabled(&extension_names, &config)?;
-    let (package, workspace_manifest) =
-        ensure_package_setup(&package_name, &package_version, &extensions, &tx)?;
+    let (package, workspace_manifest) = ensure_package_setup(
+        &package_name,
+        &package_version,
+        &registry_metadata,
+        &extensions,
+        &tx,
+    )?;
     let review = get_insert_empty_review(&package, &tx)?;
     Ok((review, workspace_manifest))
 }
@@ -297,24 +336,35 @@ fn setup_new_review(
 fn ensure_package_setup(
     package_name: &str,
     package_version: &str,
+    registry_metadata: &Option<vouch_lib::extension::RegistryPackageMetadata>,
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     tx: &common::StoreTransaction,
 ) -> Result<(package::Package, review::workspace::Manifest)> {
-    let remote_package_metadata =
-        extension::search_registries(&package_name, &package_version, &extensions)?;
-    let primary_registry = remote_package_metadata
-        .iter()
-        .find(|registry_metadata| registry_metadata.is_primary)
-        .ok_or(format_err!(
-            "Failed to find primary registry metadata from extension."
-        ))?;
+    // Don't query registries again if results already found.
+    let registry_metadata = match registry_metadata {
+        Some(r) => r.clone(),
+        None => {
+            let all_registries_metadata =
+                extension::search_registries(&package_name, &Some(package_version), &extensions)?;
+            all_registries_metadata
+                .iter()
+                .find(|registry_metadata| registry_metadata.is_primary)
+                .ok_or(format_err!(
+                    "Failed to find primary registry metadata from extension."
+                ))?
+                .clone()
+        }
+    };
+
+    // Get package version from found metadata incase given version was unknown.
+    let package_version = registry_metadata.package_version.clone();
 
     let package = package::index::get(
         &package::index::Fields {
             package_name: Some(&package_name),
             package_version: Some(&package_version),
             registry_host_names: Some(
-                maplit::btreeset! {primary_registry.registry_host_name.as_str()},
+                maplit::btreeset! {registry_metadata.registry_host_name.as_str()},
             ),
             ..Default::default()
         },
@@ -336,9 +386,9 @@ fn ensure_package_setup(
         }
         None => {
             let registry = registry::index::ensure(
-                &primary_registry.registry_host_name,
-                &url::Url::parse(&primary_registry.human_url)?,
-                &url::Url::parse(&primary_registry.artifact_url)?,
+                &registry_metadata.registry_host_name,
+                &url::Url::parse(&registry_metadata.human_url)?,
+                &url::Url::parse(&registry_metadata.artifact_url)?,
                 &tx,
             )?;
             let workspace_manifest = review::workspace::ensure(

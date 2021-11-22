@@ -7,10 +7,12 @@ mod process;
 
 /// Search package registries via extensions for package metadata from registries.
 ///
-/// Raises errors for no results or multiple results. Ok for single result.
+/// Returns a vector of results where each element describes metadata for a given registry. All elements
+/// within the return vector correspond to the same ecosystem.
+/// Raises errors for no results or results which span multiple ecosystems. Ok for single result.
 pub fn search_registries<'a>(
     package_name: &str,
-    package_version: &str,
+    package_version: &Option<&str>,
     extensions: &'a Vec<Box<dyn vouch_lib::extension::Extension>>,
 ) -> Result<Vec<vouch_lib::extension::RegistryPackageMetadata>> {
     type SearchResults = Result<Vec<Result<Vec<vouch_lib::extension::RegistryPackageMetadata>>>>;

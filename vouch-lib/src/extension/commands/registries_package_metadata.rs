@@ -15,15 +15,15 @@ pub struct Arguments {
 
     /// Package version.
     #[structopt(name = "package-version")]
-    pub package_version: String,
+    pub package_version: Option<String>,
 }
 
 pub fn run_command<T: common::Extension + std::fmt::Debug>(
     args: &Arguments,
     extension: &mut T,
 ) -> Result<()> {
-    let local_dependencies =
-        extension.registries_package_metadata(&args.package_name, &args.package_version)?;
+    let local_dependencies = extension
+        .registries_package_metadata(&args.package_name, &args.package_version.as_deref())?;
     println!("{}", serde_json::to_string(&local_dependencies)?);
     Ok(())
 }

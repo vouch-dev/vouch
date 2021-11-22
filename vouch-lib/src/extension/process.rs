@@ -79,8 +79,9 @@ impl common::Extension for ProcessExtension {
     fn registries_package_metadata(
         &self,
         package_name: &str,
-        package_version: &str,
+        package_version: &Option<&str>,
     ) -> Result<Vec<common::RegistryPackageMetadata>> {
+        let package_version = package_version.unwrap_or_default();
         let args = vec!["registries-package-metadata", package_name, package_version];
         let output: Box<Vec<common::RegistryPackageMetadata>> =
             run_process(&self.process_path_, &args)?;
