@@ -102,6 +102,7 @@ fn setup_data_directory_contents(paths: &common::fs::DataPaths) -> Result<()> {
     std::fs::create_dir_all(&paths.ongoing_reviews_directory)?;
     std::fs::File::create(&paths.ongoing_reviews_directory.join(".gitkeep"))?;
     append_git_exclude("reviews/.ongoing", &paths.root_directory)?;
+    append_git_exclude(".index/index.db-journal", &paths.root_directory)?;
 
     std::fs::create_dir_all(&paths.peers_directory)?;
     std::fs::File::create(&paths.peers_directory.join(".gitkeep"))?;
