@@ -133,6 +133,8 @@ fn setup_review(
 ) -> Result<(review::Review, ReviewEditMode, review::workspace::Manifest)> {
     let extensions = extension::manage::get_enabled(&extension_names, &config)?;
 
+    let package_version_was_given = package_version.is_some();
+
     // Get latest package version if none given.
     let mut package_version: Option<String> = package_version.clone();
     let mut registry_metadata: Option<vouch_lib::extension::RegistryPackageMetadata> = None;
@@ -145,6 +147,10 @@ fn setup_review(
     let package_version = package_version.ok_or(format_err!(
         "No package version given. Failed to find latest package version."
     ))?;
+
+    if !package_version_was_given {
+        println!("Found latest package version: {}", package_version);
+    }
 
     if let Some((review, workspace_manifest)) = setup_existing_review(
         &package_name,
