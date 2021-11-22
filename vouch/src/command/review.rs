@@ -64,6 +64,10 @@ pub fn run_command(args: &Arguments) -> Result<()> {
 
     println!("Starting review tool.");
     review::tool::run(&workspace_manifest.workspace_path, &config)?;
+    if !active_review_file.exists() {
+        println!("Review file not found.");
+        return Ok(());
+    }
     review.comments = get_comments(&active_review_file, &tx)?;
     println!(
         "Review tool closed. Fund {} review comments.",
@@ -149,10 +153,10 @@ fn setup_review(
         &config,
         &tx,
     )? {
-        println!("Selecting existing review for editing.");
+        println!("Selecting previously committed review for editing.");
         Ok((review, ReviewEditMode::Update, workspace_manifest))
     } else {
-        println!("Starting new review.");
+        println!("Editing local uncommitted review.");
         let (review, workspace_directory) = setup_new_review(
             &package_name,
             &package_version,
