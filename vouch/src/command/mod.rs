@@ -83,7 +83,7 @@ pub enum Command {
 }
 
 #[derive(Debug, StructOpt, Clone)]
-#[structopt(about = "Package Reviews")]
+#[structopt(about = "Package Code Reviews")]
 #[structopt(global_setting = structopt::clap::AppSettings::ColoredHelp)]
 #[structopt(global_setting = structopt::clap::AppSettings::DeriveDisplayOrder)]
 pub struct Opts {
