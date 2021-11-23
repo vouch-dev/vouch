@@ -15,6 +15,7 @@ pub fn search_registries<'a>(
     package_version: &Option<&str>,
     extensions: &'a Vec<Box<dyn vouch_lib::extension::Extension>>,
 ) -> Result<Vec<vouch_lib::extension::RegistryPackageMetadata>> {
+    log::debug!("Querying extensions for package metadata from registries.");
     type SearchResults = Result<Vec<Result<Vec<vouch_lib::extension::RegistryPackageMetadata>>>>;
     let search_results: SearchResults = crossbeam_utils::thread::scope(|s| {
         let threads: Vec<_> = extensions
@@ -51,6 +52,11 @@ fn select_search_result<'a>(
 
     for (search_result, extension) in extensions_search_results.into_iter() {
         if search_result.is_err() {
+            log::debug!(
+                "Extension {} returned error:\n{:?}",
+                extension.name(),
+                search_result
+            );
             continue;
         }
 

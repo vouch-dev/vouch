@@ -81,8 +81,11 @@ impl common::Extension for ProcessExtension {
         package_name: &str,
         package_version: &Option<&str>,
     ) -> Result<Vec<common::RegistryPackageMetadata>> {
-        let package_version = package_version.unwrap_or_default();
-        let args = vec!["registries-package-metadata", package_name, package_version];
+        let mut args = vec!["registries-package-metadata", package_name];
+        if let Some(package_version) = package_version {
+            args.push(package_version.clone());
+        }
+
         let output: Box<Vec<common::RegistryPackageMetadata>> =
             run_process(&self.process_path_, &args)?;
         Ok(*output)
@@ -93,6 +96,10 @@ fn run_process<'a, T: ?Sized>(process_path: &std::path::PathBuf, args: &Vec<&str
 where
     for<'de> T: serde::Deserialize<'de> + 'a,
 {
+    log::debug!(
+        "Executing extensions process call with arguments\n{:?}",
+        args
+    );
     let process = process_path.to_str().ok_or(format_err!(
         "Failed to parse string from process path: {}",
         process_path.display()
