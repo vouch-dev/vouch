@@ -22,7 +22,14 @@ pub fn report(
         &tx,
     )?;
     if reviews.is_empty() {
-        println!("No reviews found.");
+        if let Some(package_version) = package_version {
+            println!(
+                "No reviews found for package {} at version {}.",
+                package_name, package_version
+            );
+        } else {
+            println!("No reviews found for package {}.", package_name);
+        }
         let disabled_extension_names = extension::manage::get_disabled_names(&config)?;
         if !disabled_extension_names.is_empty() {
             println!(
