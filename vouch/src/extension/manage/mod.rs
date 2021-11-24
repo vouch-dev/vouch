@@ -318,7 +318,7 @@ pub fn get_disabled_names(config: &Config) -> Result<Vec<String>> {
         .extensions
         .enabled
         .iter()
-        .filter(|(_extension_name, enabled_flag)| **enabled_flag)
+        .filter(|(_extension_name, enabled_flag)| !**enabled_flag)
         .map(|(extension_name, _enabled_flag)| extension_name.clone())
         .collect::<Vec<_>>())
 }
