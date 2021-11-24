@@ -78,6 +78,7 @@ pub trait Extension: Send + Sync {
     fn identify_local_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
+        extension_args: &Vec<String>,
     ) -> Result<Vec<DependenciesSpec>>;
 
     /// Query package registries for package metadata.

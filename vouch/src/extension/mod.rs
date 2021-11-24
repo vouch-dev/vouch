@@ -81,13 +81,15 @@ fn select_search_result<'a>(
 /// Conducts a parallel search across extensions.
 pub fn identify_local_dependencies(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
+    extension_args: &Vec<String>,
     working_directory: &std::path::PathBuf,
 ) -> Result<Vec<Result<Vec<vouch_lib::extension::DependenciesSpec>>>> {
     crossbeam_utils::thread::scope(|s| {
         let mut threads = Vec::new();
         for extension in extensions {
-            threads
-                .push(s.spawn(move |_| extension.identify_local_dependencies(&working_directory)));
+            threads.push(s.spawn(move |_| {
+                extension.identify_local_dependencies(&working_directory, &extension_args)
+            }));
         }
         let mut result = Vec::new();
         for thread in threads {

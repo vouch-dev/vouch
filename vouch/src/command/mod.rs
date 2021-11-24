@@ -9,7 +9,7 @@ mod review;
 mod setup;
 mod sync;
 
-pub fn run_command(command: Command) -> Result<()> {
+pub fn run_command(command: Command, extension_args: &Vec<String>) -> Result<()> {
     match command {
         Command::Setup(args) => {
             log::info!("Running command: setup");
@@ -28,7 +28,7 @@ pub fn run_command(command: Command) -> Result<()> {
         Command::Check(args) => {
             log::info!("Running command: check");
             setup::is_complete()?;
-            check::run_command(&args)?;
+            check::run_command(&args, &extension_args)?;
         }
         Command::Sync(args) => {
             log::info!("Running command: sync");

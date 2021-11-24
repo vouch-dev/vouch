@@ -65,12 +65,21 @@ impl common::Extension for ProcessExtension {
     fn identify_local_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
+        extension_args: &Vec<String>,
     ) -> Result<Vec<common::DependenciesSpec>> {
         let working_directory = working_directory.to_str().ok_or(format_err!(
             "Failed to parse path into string: {}",
             working_directory.display()
         ))?;
-        let args = vec!["identify-local-dependencies", working_directory];
+        let mut args = vec![
+            "identify-local-dependencies",
+            "--working-directory",
+            working_directory,
+        ];
+        for extension_arg in extension_args {
+            args.push("--extension-args");
+            args.push(extension_arg);
+        }
         let output: Box<Vec<common::DependenciesSpec>> = run_process(&self.process_path_, &args)?;
         Ok(*output)
     }

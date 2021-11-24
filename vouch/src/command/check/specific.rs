@@ -26,7 +26,7 @@ pub fn report(
         let disabled_extension_names = extension::manage::get_disabled_names(&config)?;
         if !disabled_extension_names.is_empty() {
             println!(
-                "Consider enabling some of these extensions: {}",
+                "Consider querying some of these extensions: {}",
                 disabled_extension_names.join(", ")
             )
         }

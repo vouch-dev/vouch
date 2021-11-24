@@ -31,7 +31,7 @@ pub struct Arguments {
     pub extension_names: Option<Vec<String>>,
 }
 
-pub fn run_command(args: &Arguments) -> Result<()> {
+pub fn run_command(args: &Arguments, extension_args: &Vec<String>) -> Result<()> {
     let mut config = common::config::Config::load()?;
     extension::manage::update_config(&mut config)?;
     let config = config;
@@ -52,7 +52,7 @@ pub fn run_command(args: &Arguments) -> Result<()> {
             )?;
         }
         None => {
-            dependencies::report(&extension_names, &config, &tx)?;
+            dependencies::report(&extension_names, &extension_args, &config, &tx)?;
         }
     }
     Ok(())
