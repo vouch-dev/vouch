@@ -25,8 +25,8 @@ pub fn run_command<T: common::Extension + std::fmt::Debug>(
     extension: &T,
 ) -> Result<()> {
     let working_directory = std::path::PathBuf::from(&args.working_directory);
-    let local_dependencies =
+    let dependencies =
         extension.identify_file_defined_dependencies(&working_directory, &args.extension_args)?;
-    println!("{}", serde_json::to_string(&local_dependencies)?);
+    println!("{}", serde_json::to_string(&dependencies)?);
     Ok(())
 }
