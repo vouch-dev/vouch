@@ -91,7 +91,10 @@ impl common::Extension for ProcessExtension {
         package_name: &str,
         package_version: &Option<&str>,
     ) -> Result<Vec<common::RegistryPackageMetadata>> {
-        let mut args = vec!["registries-package-metadata", package_name];
+        let mut args = vec![
+            super::commands::registries_package_metadata::COMMAND_NAME,
+            package_name,
+        ];
         if let Some(package_version) = package_version {
             args.push(package_version.clone());
         }

@@ -2,6 +2,8 @@ use super::super::common;
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
+pub const COMMAND_NAME: &str = "registries-package-metadata";
+
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
     name = "no_version",

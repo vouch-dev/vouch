@@ -3,7 +3,7 @@ use anyhow::Result;
 use structopt::{self, StructOpt};
 
 pub mod identify_file_defined_dependencies;
-mod registries_package_metadata;
+pub mod registries_package_metadata;
 mod static_data;
 
 #[derive(Debug, StructOpt, Clone)]
@@ -17,7 +17,7 @@ enum Command {
     IdentifyFileDefinedDependencies(identify_file_defined_dependencies::Arguments),
 
     /// Get package metadata from registries.
-    #[structopt(name = "registries-package-metadata")]
+    #[structopt(name = registries_package_metadata::COMMAND_NAME)]
     RegistriesPackageMetadata(registries_package_metadata::Arguments),
 }
 
