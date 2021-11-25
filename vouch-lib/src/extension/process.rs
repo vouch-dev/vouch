@@ -62,17 +62,17 @@ impl common::Extension for ProcessExtension {
     }
 
     /// Returns a list of local package dependencies specification files.
-    fn identify_local_dependencies(
+    fn identify_file_defined_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
         extension_args: &Vec<String>,
-    ) -> Result<Vec<common::DependenciesSpec>> {
+    ) -> Result<Vec<common::FileDefinedDependencies>> {
         let working_directory = working_directory.to_str().ok_or(format_err!(
             "Failed to parse path into string: {}",
             working_directory.display()
         ))?;
         let mut args = vec![
-            "identify-local-dependencies",
+            super::commands::identify_file_defined_dependencies::COMMAND_NAME,
             "--working-directory",
             working_directory,
         ];
@@ -80,7 +80,8 @@ impl common::Extension for ProcessExtension {
             args.push("--extension-args");
             args.push(extension_arg);
         }
-        let output: Box<Vec<common::DependenciesSpec>> = run_process(&self.process_path_, &args)?;
+        let output: Box<Vec<common::FileDefinedDependencies>> =
+            run_process(&self.process_path_, &args)?;
         Ok(*output)
     }
 

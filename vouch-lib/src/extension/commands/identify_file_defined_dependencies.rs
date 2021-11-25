@@ -2,6 +2,8 @@ use super::super::common;
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
+pub const COMMAND_NAME: &str = "identify-file-defined-dependencies";
+
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(
     name = "no_version",
@@ -24,7 +26,7 @@ pub fn run_command<T: common::Extension + std::fmt::Debug>(
 ) -> Result<()> {
     let working_directory = std::path::PathBuf::from(&args.working_directory);
     let local_dependencies =
-        extension.identify_local_dependencies(&working_directory, &args.extension_args)?;
+        extension.identify_file_defined_dependencies(&working_directory, &args.extension_args)?;
     println!("{}", serde_json::to_string(&local_dependencies)?);
     Ok(())
 }

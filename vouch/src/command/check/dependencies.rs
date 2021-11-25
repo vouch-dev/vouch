@@ -51,7 +51,7 @@ pub fn report(
 }
 
 fn report_dependencies_spec(
-    dependencies_spec: &vouch_lib::extension::DependenciesSpec,
+    dependencies_spec: &vouch_lib::extension::FileDefinedDependencies,
     extension: &Box<dyn vouch_lib::extension::Extension>,
     tx: &StoreTransaction,
 ) -> Result<()> {

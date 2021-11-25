@@ -3,5 +3,5 @@ pub mod common;
 pub mod process;
 
 pub use common::{
-    DependenciesSpec, Dependency, Extension, FromLib, FromProcess, RegistryPackageMetadata,
+    Dependency, Extension, FileDefinedDependencies, FromLib, FromProcess, RegistryPackageMetadata,
 };

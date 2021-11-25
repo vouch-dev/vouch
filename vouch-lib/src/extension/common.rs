@@ -1,6 +1,8 @@
 use anyhow::Result;
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Hash, Eq, PartialEq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct VersionError(String);
 
 impl VersionError {
@@ -20,7 +22,9 @@ impl VersionError {
 pub type VersionParseResult = std::result::Result<String, VersionError>;
 
 /// A dependency as specified within a dependencies definition file.
-#[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct Dependency {
     pub name: String,
     pub version: VersionParseResult,
@@ -28,7 +32,7 @@ pub struct Dependency {
 
 /// A dependencies specification file found from inspecting the local filesystem.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct DependenciesSpec {
+pub struct FileDefinedDependencies {
     /// Absolute file path for dependencies specification file.
     pub path: std::path::PathBuf,
 
@@ -74,12 +78,12 @@ pub trait Extension: Send + Sync {
     // Returns supported registries host names.
     fn registries(&self) -> Vec<String>;
 
-    /// Identify local package dependencies.
-    fn identify_local_dependencies(
+    /// Identify file defined dependencies.
+    fn identify_file_defined_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
         extension_args: &Vec<String>,
-    ) -> Result<Vec<DependenciesSpec>>;
+    ) -> Result<Vec<FileDefinedDependencies>>;
 
     /// Query package registries for package metadata.
     fn registries_package_metadata(

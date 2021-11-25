@@ -2,7 +2,7 @@ use super::common;
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
-mod identify_local_dependencies;
+pub mod identify_file_defined_dependencies;
 mod registries_package_metadata;
 mod static_data;
 
@@ -12,9 +12,9 @@ enum Command {
     #[structopt(name = "static-data")]
     StaticData,
 
-    /// Identify local dependencies.
-    #[structopt(name = "identify-local-dependencies")]
-    IdentifyLocalDependencies(identify_local_dependencies::Arguments),
+    /// Identify file defined dependencies.
+    #[structopt(name = identify_file_defined_dependencies::COMMAND_NAME)]
+    IdentifyFileDefinedDependencies(identify_file_defined_dependencies::Arguments),
 
     /// Get package metadata from registries.
     #[structopt(name = "registries-package-metadata")]
@@ -30,8 +30,8 @@ fn run_command<T: common::Extension + std::fmt::Debug>(
             static_data::run_command(extension)?;
         }
 
-        Command::IdentifyLocalDependencies(args) => {
-            identify_local_dependencies::run_command(&args, extension)?;
+        Command::IdentifyFileDefinedDependencies(args) => {
+            identify_file_defined_dependencies::run_command(&args, extension)?;
         }
 
         Command::RegistriesPackageMetadata(args) => {
