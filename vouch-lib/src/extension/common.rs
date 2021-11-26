@@ -30,6 +30,19 @@ pub struct Dependency {
     pub version: VersionParseResult,
 }
 
+/// Package dependencies found by querying a registry.
+#[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct PackageDependencies {
+    // Package version (included incase version not given as an argument).
+    pub package_version: VersionParseResult,
+
+    /// Dependencies registry host name.
+    pub registry_host_name: String,
+
+    /// Dependencies specified within the dependencies specification file.
+    pub dependencies: Vec<Dependency>,
+}
+
 /// A dependencies specification file found from inspecting the local filesystem.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FileDefinedDependencies {
@@ -77,6 +90,14 @@ pub trait Extension: Send + Sync {
 
     // Returns supported registries host names.
     fn registries(&self) -> Vec<String>;
+
+    /// Identify specific package dependencies.
+    fn identify_package_dependencies(
+        &self,
+        package_name: &str,
+        package_version: &Option<&str>,
+        extension_args: &Vec<String>,
+    ) -> Result<Vec<PackageDependencies>>;
 
     /// Identify file defined dependencies.
     fn identify_file_defined_dependencies(

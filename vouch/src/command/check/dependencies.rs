@@ -18,8 +18,11 @@ pub fn report(
     log::debug!("Current working directory: {}", working_directory.display());
 
     let mut dependencies_found = false;
-    let all_dependencies_specs =
-        extension::identify_file_defined_dependencies(&extensions, &extension_args, &working_directory)?;
+    let all_dependencies_specs = extension::identify_file_defined_dependencies(
+        &extensions,
+        &extension_args,
+        &working_directory,
+    )?;
     for (extension, extension_dependencies_specs) in
         extensions.iter().zip(all_dependencies_specs.into_iter())
     {

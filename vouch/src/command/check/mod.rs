@@ -45,8 +45,9 @@ pub fn run_command(args: &Arguments, extension_args: &Vec<String>) -> Result<()>
         Some(package_name) => {
             specific::report(
                 &package_name,
-                &args.package_version,
+                &args.package_version.as_deref(),
                 &extension_names,
+                &extension_args,
                 &config,
                 &tx,
             )?;

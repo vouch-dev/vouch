@@ -61,6 +61,33 @@ impl common::Extension for ProcessExtension {
         self.registry_host_names_.clone()
     }
 
+    /// Returns a list of dependencies for the given package.
+    ///
+    /// Returns one package dependencies structure per registry.
+    fn identify_package_dependencies(
+        &self,
+        package_name: &str,
+        package_version: &Option<&str>,
+        extension_args: &Vec<String>,
+    ) -> Result<Vec<common::PackageDependencies>> {
+        let mut args = vec![
+            super::commands::identify_file_defined_dependencies::COMMAND_NAME,
+            "--package-name",
+            package_name,
+        ];
+        if let Some(package_version) = package_version {
+            args.push("--package-version");
+            args.push(package_version);
+        }
+        for extension_arg in extension_args {
+            args.push("--extension-args");
+            args.push(extension_arg);
+        }
+        let output: Box<Vec<common::PackageDependencies>> =
+            run_process(&self.process_path_, &args)?;
+        Ok(*output)
+    }
+
     /// Returns a list of local package dependencies specification files.
     fn identify_file_defined_dependencies(
         &self,

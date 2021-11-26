@@ -3,6 +3,7 @@ use anyhow::Result;
 use structopt::{self, StructOpt};
 
 pub mod identify_file_defined_dependencies;
+pub mod identify_package_dependencies;
 pub mod registries_package_metadata;
 mod static_data;
 
@@ -11,6 +12,10 @@ enum Command {
     /// Get extension static data.
     #[structopt(name = "static-data")]
     StaticData,
+
+    /// Identify package dependencies.
+    #[structopt(name = identify_package_dependencies::COMMAND_NAME)]
+    IdentifyPackageDependencies(identify_package_dependencies::Arguments),
 
     /// Identify file defined dependencies.
     #[structopt(name = identify_file_defined_dependencies::COMMAND_NAME)]
@@ -28,6 +33,10 @@ fn run_command<T: common::Extension + std::fmt::Debug>(
     match command {
         Command::StaticData => {
             static_data::run_command(extension)?;
+        }
+
+        Command::IdentifyPackageDependencies(args) => {
+            identify_package_dependencies::run_command(&args, extension)?;
         }
 
         Command::IdentifyFileDefinedDependencies(args) => {

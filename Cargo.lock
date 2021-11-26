@@ -2694,6 +2694,7 @@ dependencies = [
  "structopt",
  "strum",
  "strum_macros",
+ "tempdir",
  "url",
  "vouch-lib",
 ]
