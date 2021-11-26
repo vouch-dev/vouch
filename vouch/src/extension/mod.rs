@@ -76,10 +76,10 @@ fn select_search_result<'a>(
     }
 }
 
-/// Identify all supported dependencies in a local code base.
+/// Identify all supported dependencies which are defined in a local file.
 ///
 /// Conducts a parallel search across extensions.
-pub fn identify_local_dependencies(
+pub fn identify_file_defined_dependencies(
     extensions: &Vec<Box<dyn vouch_lib::extension::Extension>>,
     extension_args: &Vec<String>,
     working_directory: &std::path::PathBuf,
