@@ -46,9 +46,13 @@ pub fn report(
             log::debug!("No dependencies found.");
         }
 
-        for dependencies_spec in extension_dependencies_specs {
+        for (index, dependencies_spec) in extension_dependencies_specs.iter().enumerate() {
             dependencies_found |= !dependencies_spec.dependencies.is_empty();
-            report_dependencies_spec(&package_name, &dependencies_spec, &extension, &tx)?;
+            report_dependencies(&package_name, &dependencies_spec, &tx)?;
+            let is_last = index == extension_dependencies_specs.len() - 1;
+            if !is_last {
+                println!("");
+            }
         }
     }
 
@@ -58,21 +62,20 @@ pub fn report(
     Ok(())
 }
 
-fn report_dependencies_spec(
+fn report_dependencies(
     package_name: &str,
-    dependencies_spec: &vouch_lib::extension::PackageDependencies,
-    extension: &Box<dyn vouch_lib::extension::Extension>,
+    package_dependencies: &vouch_lib::extension::PackageDependencies,
     tx: &StoreTransaction,
 ) -> Result<()> {
     log::info!("Generating report for package dependencies.");
-    let dependencies = &dependencies_spec.dependencies;
+    let dependencies = &package_dependencies.dependencies;
 
     let dependency_reports: Result<Vec<report::DependencyReport>> = dependencies
         .into_iter()
         .map(|dependency| -> Result<report::DependencyReport> {
             Ok(report::get_dependency_report(
                 &dependency,
-                &dependencies_spec.registry_host_name,
+                &package_dependencies.registry_host_name,
                 &tx,
             )?)
         })
@@ -84,16 +87,18 @@ fn report_dependencies_spec(
         return Ok(());
     }
 
-    let table = table::get(&dependency_reports)?;
-    println!("\n\nExtension: {name}", name = extension.name());
-
-    let package = if let Ok(version) = &dependencies_spec.package_version {
+    let package = if let Ok(version) = &package_dependencies.package_version {
         format!("{name} {version}", name = package_name, version = version)
     } else {
         package_name.to_string()
     };
     println!("Package: {}", package);
+    println!(
+        "Registry: {name}",
+        name = package_dependencies.registry_host_name
+    );
 
+    let table = table::get(&dependency_reports)?;
     table.printstd();
     Ok(())
 }
