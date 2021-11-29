@@ -11,7 +11,8 @@ mod review;
 mod store;
 
 fn main() {
-    env_logger::Builder::from_env("VOUCH_LOG").init();
+    let env = env_logger::Env::new().filter_or("VOUCH_LOG", "off");
+    env_logger::Builder::from_env(env).init();
 
     let args: Vec<String> = std::env::args().collect();
     let (vouch_args, extension_args) = split_extension_args(&args);
