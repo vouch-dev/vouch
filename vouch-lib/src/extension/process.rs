@@ -71,7 +71,7 @@ impl common::Extension for ProcessExtension {
         extension_args: &Vec<String>,
     ) -> Result<Vec<common::PackageDependencies>> {
         let mut args = vec![
-            super::commands::identify_file_defined_dependencies::COMMAND_NAME,
+            super::commands::identify_package_dependencies::COMMAND_NAME,
             "--package-name",
             package_name,
         ];
@@ -132,6 +132,12 @@ impl common::Extension for ProcessExtension {
     }
 }
 
+#[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ProcessResult<T> {
+    pub ok: Option<T>,
+    pub err: Option<String>,
+}
+
 fn run_process<'a, T: ?Sized>(process_path: &std::path::PathBuf, args: &Vec<&str>) -> Result<Box<T>>
 where
     for<'de> T: serde::Deserialize<'de> + 'a,
@@ -152,6 +158,13 @@ where
         .output()?;
 
     let stdout = String::from_utf8_lossy(&handle.stdout);
-    let output = serde_json::from_str(&stdout)?;
-    Ok(Box::new(output))
+    let process_result: ProcessResult<T> = serde_json::from_str(&stdout)?;
+
+    if let Some(result) = process_result.ok {
+        Ok(Box::new(result))
+    } else if let Some(result) = process_result.err {
+        Err(format_err!(result))
+    } else {
+        Err(format_err!("Failed to find ok or err result from process."))
+    }
 }

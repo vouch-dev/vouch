@@ -1,4 +1,5 @@
-use super::super::common;
+use super::common;
+use crate::extension::common::Extension;
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
@@ -20,12 +21,12 @@ pub struct Arguments {
     pub package_version: Option<String>,
 }
 
-pub fn run_command<T: common::Extension + std::fmt::Debug>(
+pub fn run_command<T: Extension + std::fmt::Debug>(
     args: &Arguments,
     extension: &mut T,
 ) -> Result<()> {
-    let local_dependencies = extension
-        .registries_package_metadata(&args.package_name, &args.package_version.as_deref())?;
-    println!("{}", serde_json::to_string(&local_dependencies)?);
+    let local_dependencies =
+        extension.registries_package_metadata(&args.package_name, &args.package_version.as_deref());
+    common::communicate_result(local_dependencies)?;
     Ok(())
 }

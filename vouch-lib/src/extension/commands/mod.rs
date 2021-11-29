@@ -1,7 +1,8 @@
-use super::common;
+use super::common::Extension;
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
+mod common;
 pub mod identify_file_defined_dependencies;
 pub mod identify_package_dependencies;
 pub mod registries_package_metadata;
@@ -26,10 +27,7 @@ enum Command {
     RegistriesPackageMetadata(registries_package_metadata::Arguments),
 }
 
-fn run_command<T: common::Extension + std::fmt::Debug>(
-    command: Command,
-    extension: &mut T,
-) -> Result<()> {
+fn run_command<T: Extension + std::fmt::Debug>(command: Command, extension: &mut T) -> Result<()> {
     match command {
         Command::StaticData => {
             static_data::run_command(extension)?;
@@ -59,14 +57,11 @@ struct Opts {
     pub command: Command,
 }
 
-pub fn run<T: common::Extension + std::fmt::Debug>(extension: &mut T) -> Result<()> {
+pub fn run<T: Extension + std::fmt::Debug>(extension: &mut T) -> Result<()> {
     let commands = Opts::from_args();
     match run_command(commands.command, extension) {
         Ok(_) => {}
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(-2)
-        }
+        Err(_e) => std::process::exit(-2),
     };
     Ok(())
 }

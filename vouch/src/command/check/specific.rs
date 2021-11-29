@@ -29,7 +29,7 @@ pub fn report(
     for (extension, extension_dependencies_specs) in
         extensions.iter().zip(all_dependencies_specs.into_iter())
     {
-        log::info!(
+        log::debug!(
             "Inspecting dependencies supported by extension: {}",
             extension.name()
         );
@@ -41,6 +41,11 @@ pub fn report(
                 continue;
             }
         };
+
+        if extension_dependencies_specs.len() == 0 {
+            log::debug!("No dependencies found.");
+        }
+
         for dependencies_spec in extension_dependencies_specs {
             dependencies_found |= !dependencies_spec.dependencies.is_empty();
             report_dependencies_spec(&package_name, &dependencies_spec, &extension, &tx)?;

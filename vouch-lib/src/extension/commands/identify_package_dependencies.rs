@@ -1,4 +1,5 @@
-use super::super::common;
+use super::common;
+use crate::extension::common::Extension;
 use anyhow::Result;
 use structopt::{self, StructOpt};
 
@@ -24,15 +25,12 @@ pub struct Arguments {
     pub extension_args: Vec<String>,
 }
 
-pub fn run_command<T: common::Extension + std::fmt::Debug>(
-    args: &Arguments,
-    extension: &T,
-) -> Result<()> {
+pub fn run_command<T: Extension + std::fmt::Debug>(args: &Arguments, extension: &T) -> Result<()> {
     let dependencies = extension.identify_package_dependencies(
         &args.package_name,
         &args.package_version.as_deref(),
         &args.extension_args,
-    )?;
-    println!("{}", serde_json::to_string(&dependencies)?);
+    );
+    common::communicate_result(dependencies)?;
     Ok(())
 }
