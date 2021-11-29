@@ -81,7 +81,7 @@ fn report_dependencies_spec(
         return Ok(());
     }
 
-    let table = table::get(&dependency_reports)?;
+    let table = table::get(&dependency_reports, false)?;
     println!(
         "\n\nExtension: {name}\n{path}",
         name = extension.name(),

@@ -70,35 +70,36 @@ fn report_dependencies(
     log::info!("Generating report for package dependencies.");
     let dependencies = &package_dependencies.dependencies;
 
-    let dependency_reports: Result<Vec<report::DependencyReport>> = dependencies
-        .into_iter()
-        .map(|dependency| -> Result<report::DependencyReport> {
-            Ok(report::get_dependency_report(
-                &dependency,
-                &package_dependencies.registry_host_name,
-                &tx,
-            )?)
-        })
-        .collect();
-    let dependency_reports = dependency_reports?;
+    let mut dependency_reports = vec![];
+    let target_package_dependency_report = report::get_dependency_report(
+        &vouch_lib::extension::Dependency {
+            name: package_name.to_string(),
+            version: package_dependencies.package_version.clone(),
+        },
+        &package_dependencies.registry_host_name,
+        &tx,
+    )?;
+    dependency_reports.push(target_package_dependency_report);
+    for dependency in dependencies {
+        let dependency_report = report::get_dependency_report(
+            &dependency,
+            &package_dependencies.registry_host_name,
+            &tx,
+        )?;
+        dependency_reports.push(dependency_report);
+    }
 
     log::info!("Number of dependencies found: {}", dependency_reports.len());
     if dependency_reports.is_empty() {
         return Ok(());
     }
 
-    let package = if let Ok(version) = &package_dependencies.package_version {
-        format!("{name} {version}", name = package_name, version = version)
-    } else {
-        package_name.to_string()
-    };
-    println!("Package: {}", package);
     println!(
         "Registry: {name}",
         name = package_dependencies.registry_host_name
     );
 
-    let table = table::get(&dependency_reports)?;
+    let table = table::get(&dependency_reports, true)?;
     table.printstd();
     Ok(())
 }

@@ -3,34 +3,50 @@ use crate::review;
 use anyhow::Result;
 use prettytable::{self, cell};
 
-/// Generates and returns a table from a given extension dependency review report.
-pub fn get(dependency_reports: &Vec<report::DependencyReport>) -> Result<prettytable::Table> {
+fn get_row(dependency_report: &report::DependencyReport) -> prettytable::Row {
+    let summary: prettytable::Cell = dependency_report.summary.clone().into();
+    let package_version = match &dependency_report.version {
+        Some(v) => v.as_str(),
+        None => "",
+    };
+    let review_count = match dependency_report.review_count {
+        Some(v) => v.to_string(),
+        None => "".to_string(),
+    };
+    let note = get_note_cell(&dependency_report);
+    prettytable::Row::new(vec![
+        summary,
+        prettytable::Cell::new_align(
+            &dependency_report.name,
+            prettytable::format::Alignment::LEFT,
+        ),
+        prettytable::Cell::new_align(&package_version, prettytable::format::Alignment::RIGHT),
+        prettytable::Cell::new_align(&review_count, prettytable::format::Alignment::RIGHT),
+        note,
+    ])
+}
+
+/// Generates and returns a table from a given vector of dependency review reports.
+pub fn get(
+    dependency_reports: &Vec<report::DependencyReport>,
+    first_row_separate: bool,
+) -> Result<prettytable::Table> {
     let mut table = prettytable::Table::new();
     table.set_titles(prettytable::row![c => "  ", "name", "version", "reviews", "notes"]);
     table.set_format(*prettytable::format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
 
-    let mut dependency_reports = dependency_reports.clone();
-    dependency_reports.sort();
+    let mut dependency_reports_iter = dependency_reports.iter();
+    if first_row_separate {
+        if let Some(dependency_report) = dependency_reports_iter.next() {
+            let row = get_row(&dependency_report);
+            table.add_row(row);
+            table.add_row(prettytable::row![c => "  ", "", "", "", ""]);
+        }
+    }
 
-    for dependency in dependency_reports {
-        let status_call: prettytable::Cell = dependency.summary.clone().into();
-        let package_version = match &dependency.version {
-            Some(v) => v.as_str(),
-            None => "",
-        };
-        let review_count = match dependency.review_count {
-            Some(v) => v.to_string(),
-            None => "".to_string(),
-        };
-        let note = get_note_cell(&dependency);
-
-        table.add_row(prettytable::Row::new(vec![
-            status_call,
-            prettytable::Cell::new_align(&dependency.name, prettytable::format::Alignment::LEFT),
-            prettytable::Cell::new_align(&package_version, prettytable::format::Alignment::RIGHT),
-            prettytable::Cell::new_align(&review_count, prettytable::format::Alignment::RIGHT),
-            note,
-        ]));
+    for dependency_report in dependency_reports_iter {
+        let row = get_row(&dependency_report);
+        table.add_row(row);
     }
     Ok(table)
 }
