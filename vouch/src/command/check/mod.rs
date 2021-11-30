@@ -5,9 +5,9 @@ use crate::common;
 use crate::extension;
 use crate::store;
 
-mod dependencies;
+mod fs;
+mod package;
 mod report;
-mod specific;
 mod table;
 
 #[derive(Debug, StructOpt, Clone)]
@@ -43,7 +43,7 @@ pub fn run_command(args: &Arguments, extension_args: &Vec<String>) -> Result<()>
 
     match &args.package_name {
         Some(package_name) => {
-            specific::report(
+            package::report(
                 &package_name,
                 &args.package_version.as_deref(),
                 &extension_names,
@@ -53,7 +53,7 @@ pub fn run_command(args: &Arguments, extension_args: &Vec<String>) -> Result<()>
             )?;
         }
         None => {
-            dependencies::report(&extension_names, &extension_args, &config, &tx)?;
+            fs::report(&extension_names, &extension_args, &config, &tx)?;
         }
     }
     Ok(())
