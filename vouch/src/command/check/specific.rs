@@ -42,10 +42,6 @@ pub fn report(
             }
         };
 
-        if extension_dependencies_specs.len() == 0 {
-            log::debug!("No dependencies found.");
-        }
-
         for (index, dependencies_spec) in extension_dependencies_specs.iter().enumerate() {
             dependencies_found |= !dependencies_spec.dependencies.is_empty();
             report_dependencies(&package_name, &dependencies_spec, &tx)?;

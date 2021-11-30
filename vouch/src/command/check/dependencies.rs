@@ -38,9 +38,13 @@ pub fn report(
                 continue;
             }
         };
-        for dependencies_spec in extension_dependencies_specs {
-            dependencies_found |= !dependencies_spec.dependencies.is_empty();
-            report_dependencies_spec(&dependencies_spec, &extension, &tx)?;
+        for (index, package_dependencies) in extension_dependencies_specs.iter().enumerate() {
+            dependencies_found |= !package_dependencies.dependencies.is_empty();
+            report_dependencies(&package_dependencies, &tx)?;
+            let is_last = index == extension_dependencies_specs.len() - 1;
+            if !is_last {
+                println!("");
+            }
         }
     }
 
@@ -53,23 +57,22 @@ pub fn report(
     Ok(())
 }
 
-fn report_dependencies_spec(
-    dependencies_spec: &vouch_lib::extension::FileDefinedDependencies,
-    extension: &Box<dyn vouch_lib::extension::Extension>,
+fn report_dependencies(
+    package_dependencies: &vouch_lib::extension::FileDefinedDependencies,
     tx: &StoreTransaction,
 ) -> Result<()> {
     log::info!(
         "Generating report for dependencies specification file: {}",
-        dependencies_spec.path.display()
+        package_dependencies.path.display()
     );
-    let dependencies = &dependencies_spec.dependencies;
+    let dependencies = &package_dependencies.dependencies;
 
     let dependency_reports: Result<Vec<report::DependencyReport>> = dependencies
         .into_iter()
         .map(|dependency| -> Result<report::DependencyReport> {
             Ok(report::get_dependency_report(
                 &dependency,
-                &dependencies_spec.registry_host_name,
+                &package_dependencies.registry_host_name,
                 &tx,
             )?)
         })
@@ -83,9 +86,9 @@ fn report_dependencies_spec(
 
     let table = table::get(&dependency_reports, false)?;
     println!(
-        "\n\nExtension: {name}\n{path}",
-        name = extension.name(),
-        path = dependencies_spec.path.display(),
+        "Registry: {name}\n{path}",
+        name = package_dependencies.registry_host_name,
+        path = package_dependencies.path.display(),
     );
     table.printstd();
     Ok(())
