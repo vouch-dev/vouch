@@ -16,6 +16,10 @@ Software packages are usually used without review. Who's checked the code? Typic
 
 Vouch evaluates software dependencies using user generated micro-reviews. Even single line reviews become powerful when aggregated!
 
+<p align="center">
+  <img src="assets/vouch_review_is-even_v3.gif" alt="Using Vouch to review Javascript package is-even." />
+</p>
+
 ## Getting Started
 
 ### Setup
