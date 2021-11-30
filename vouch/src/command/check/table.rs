@@ -73,21 +73,27 @@ fn get_note_cell(dependency_report: &report::DependencyReport) -> prettytable::C
 impl From<review::Summary> for prettytable::Cell {
     fn from(summary: review::Summary) -> Self {
         let label = match summary {
+            review::Summary::Todo => "      ",
             review::Summary::Pass => " PASS ",
             review::Summary::Warn => " WARN ",
             review::Summary::Fail => " FAIL ",
         };
 
         let background_color = match summary {
-            review::Summary::Pass => prettytable::color::BRIGHT_GREEN,
-            review::Summary::Warn => prettytable::color::YELLOW,
-            review::Summary::Fail => prettytable::color::BRIGHT_RED,
+            review::Summary::Todo => None,
+            review::Summary::Pass => Some(prettytable::color::BRIGHT_GREEN),
+            review::Summary::Warn => Some(prettytable::color::YELLOW),
+            review::Summary::Fail => Some(prettytable::color::BRIGHT_RED),
         };
 
-        prettytable::Cell::new_align(label, prettytable::format::Alignment::CENTER)
-            .with_style(prettytable::Attr::BackgroundColor(background_color))
-            .with_style(prettytable::Attr::ForegroundColor(
-                prettytable::color::BLACK,
-            ))
+        if let Some(background_color) = background_color {
+            prettytable::Cell::new_align(label, prettytable::format::Alignment::CENTER)
+                .with_style(prettytable::Attr::BackgroundColor(background_color))
+                .with_style(prettytable::Attr::ForegroundColor(
+                    prettytable::color::BLACK,
+                ))
+        } else {
+            prettytable::Cell::new_align(label, prettytable::format::Alignment::CENTER)
+        }
     }
 }

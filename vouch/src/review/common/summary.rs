@@ -6,12 +6,14 @@ pub enum Summary {
     Fail,
     Warn,
     Pass,
+    Todo,
 }
 
 impl std::str::FromStr for Summary {
     type Err = anyhow::Error;
     fn from_str(input: &str) -> Result<Summary, Self::Err> {
         match input {
+            "todo" => Ok(Summary::Todo),
             "pass" => Ok(Summary::Pass),
             "warn" => Ok(Summary::Warn),
             "fail" => Ok(Summary::Fail),

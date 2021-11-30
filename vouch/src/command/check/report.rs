@@ -44,7 +44,7 @@ pub fn get_dependency_report(
     if reviews.is_empty() {
         // Report no reviews found for dependency.
         return Ok(DependencyReport {
-            summary: review::Summary::Warn,
+            summary: review::Summary::Todo,
             name: dependency.name.clone(),
             version: Some(package_version.clone()),
             review_count: Some(0),
