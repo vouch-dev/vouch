@@ -23,7 +23,7 @@ pub fn report(
         &extension_args,
         &working_directory,
     )?;
-    for (extension, extension_dependencies_specs) in
+    for (extension, extension_all_dependencies) in
         extensions.iter().zip(all_dependencies_specs.into_iter())
     {
         log::info!(
@@ -31,17 +31,17 @@ pub fn report(
             extension.name()
         );
 
-        let extension_dependencies_specs = match extension_dependencies_specs {
+        let extension_all_dependencies = match extension_all_dependencies {
             Ok(d) => d,
             Err(error) => {
                 log::error!("Extension error: {}", error);
                 continue;
             }
         };
-        for (index, package_dependencies) in extension_dependencies_specs.iter().enumerate() {
-            dependencies_found |= !package_dependencies.dependencies.is_empty();
-            report_dependencies(&package_dependencies, &tx)?;
-            let is_last = index == extension_dependencies_specs.len() - 1;
+        for (index, fs_dependencies) in extension_all_dependencies.iter().enumerate() {
+            dependencies_found |= !fs_dependencies.dependencies.is_empty();
+            report_dependencies(&fs_dependencies, &tx)?;
+            let is_last = index == extension_all_dependencies.len() - 1;
             if !is_last {
                 println!("");
             }

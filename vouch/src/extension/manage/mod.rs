@@ -312,30 +312,6 @@ pub fn get_all_names(config: &Config) -> Result<std::collections::BTreeSet<Strin
         .collect())
 }
 
-/// Get disabled extensions by names.
-pub fn get_disabled_names(config: &Config) -> Result<Vec<String>> {
-    Ok(config
-        .extensions
-        .enabled
-        .iter()
-        .filter(|(_extension_name, enabled_flag)| !**enabled_flag)
-        .map(|(extension_name, _enabled_flag)| extension_name.clone())
-        .collect::<Vec<_>>())
-}
-
-pub fn get_enabled_registry_host_names(
-    extension_names: &std::collections::BTreeSet<String>,
-    config: &Config,
-) -> Result<std::collections::HashSet<String>> {
-    Ok(config
-        .extensions
-        .registries
-        .iter()
-        .filter(|(_host_name, extension_name)| extension_names.contains(*extension_name))
-        .map(|(host_name, _extension_name)| host_name.clone())
-        .collect())
-}
-
 /// Check given extensions are enabled. If not specified select all enabled extensions.
 pub fn handle_extension_names_arg(
     extension_names: &Option<Vec<String>>,
