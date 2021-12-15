@@ -14,9 +14,6 @@ pub struct Fields<'a> {
     pub peer: Option<&'a peer::Peer>,
     pub package_id: Option<crate::common::index::ID>,
 
-    pub package_security: Option<crate::common::index::ID>,
-    pub review_confidence: Option<crate::common::index::ID>,
-
     pub package_name: Option<&'a str>,
     pub package_version: Option<&'a str>,
 
