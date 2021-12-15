@@ -10,11 +10,12 @@
   <a href="https://matrix.to/#/#vouch:matrix.org"><img src="https://img.shields.io/matrix/vouch:matrix.org?label=chat&logo=matrix" alt="Matrix"></a>
 </p>
 
-## Introduction
+Open source software dependencies are commonly used without review. Running unreviewed code poses security risks. Vouch is a package code review system built to solve this problem by:
 
-Software packages are usually used without review. Who's checked the code? Typically, no one but the author. Vouch is a review system designed to solve this problem.
+1. minimizing the costs of reviewing software
+2. checking software dependencies against reviews.
 
-Vouch evaluates software dependencies using user generated micro-reviews. Even single line reviews become powerful when aggregated!
+<br>
 
 <p align="center">
   <img src="assets/vouch_review_is-even_v3.gif" alt="Using Vouch to review Javascript package is-even." />

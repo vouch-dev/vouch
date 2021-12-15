@@ -11,6 +11,9 @@ pub struct Core {
 
     #[serde(rename = "notify-vouch-public-sync")]
     pub notify_vouch_public_sync: bool,
+
+    #[serde(rename = "api-key")]
+    pub api_key: String,
 }
 
 fn get_regex() -> Result<regex::Regex> {
@@ -48,6 +51,10 @@ pub fn set(core: &mut Core, name: &str, value: &str) -> Result<()> {
             core.notify_vouch_public_sync = common::bool_from_string(&value)?;
             Ok(())
         }
+        "api-key" => {
+            core.api_key = value.to_string();
+            Ok(())
+        }
         _ => Err(format_err!(name_error_message.clone())),
     }
 }
@@ -69,6 +76,7 @@ pub fn get(core: &Core, name: &str) -> Result<String> {
             None => "".to_string(),
         }),
         "notify-vouch-public-sync" => Ok(core.notify_vouch_public_sync.to_string()),
+        "api-key" => Ok(core.api_key.clone()),
         _ => Err(format_err!(name_error_message.clone())),
     }
 }

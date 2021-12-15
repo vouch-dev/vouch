@@ -132,6 +132,7 @@ fn setup_config(
 
         config.core.root_git_url = remote_repository_url.clone();
         config.core.notify_vouch_public_sync = true;
+        config.core.api_key = "tmp_api_key".to_string();
         config.review_tool.name = "vscode".to_string();
         config.review_tool.install_check = false;
         extension::manage::update_config(&mut config)?;

@@ -25,6 +25,32 @@ pub fn report(
         &extensions,
         &extension_args,
     )?;
+
+    let mut extensions_results = vec![];
+    for (extension, extension_all_dependencies) in
+        extensions.iter().zip(all_extensions_results.iter())
+    {
+        let all_dependencies = match extension_all_dependencies {
+            Ok(d) => d,
+            Err(error) => {
+                log::error!(
+                    "Extension {name} error: {error}",
+                    name = extension.name(),
+                    error = error
+                );
+                continue;
+            }
+        };
+        extensions_results.push((extension, all_dependencies));
+    }
+
+    let all_dependencies = extensions_results
+        .iter()
+        .map(|(_ext, deps)| deps.clone())
+        .flatten()
+        .collect();
+    let official_reviews = crate::review::official::get(&all_dependencies, &config.core.api_key)?;
+
     for (extension, extension_all_dependencies) in
         extensions.iter().zip(all_extensions_results.into_iter())
     {

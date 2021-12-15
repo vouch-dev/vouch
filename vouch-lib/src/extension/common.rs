@@ -30,6 +30,11 @@ pub struct Dependency {
     pub version: VersionParseResult,
 }
 
+pub trait DependenciesCollection: Sized {
+    fn registry_host_name(&self) -> &String;
+    fn dependencies(&self) -> &Vec<Dependency>;
+}
+
 /// Package dependencies found by querying a registry.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PackageDependencies {
@@ -43,6 +48,15 @@ pub struct PackageDependencies {
     pub dependencies: Vec<Dependency>,
 }
 
+impl DependenciesCollection for PackageDependencies {
+    fn registry_host_name(&self) -> &String {
+        &self.registry_host_name
+    }
+    fn dependencies(&self) -> &Vec<Dependency> {
+        &self.dependencies
+    }
+}
+
 /// A dependencies specification file found from inspecting the local filesystem.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FileDefinedDependencies {
@@ -54,6 +68,15 @@ pub struct FileDefinedDependencies {
 
     /// Dependencies specified within the dependencies specification file.
     pub dependencies: Vec<Dependency>,
+}
+
+impl DependenciesCollection for FileDefinedDependencies {
+    fn registry_host_name(&self) -> &String {
+        &self.registry_host_name
+    }
+    fn dependencies(&self) -> &Vec<Dependency> {
+        &self.dependencies
+    }
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
