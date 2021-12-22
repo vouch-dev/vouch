@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/logo.svg" alt="Vouch" width="100" height="100" />
-</p>
-
 <h1 align="center">Vouch</h1>
 
 <p align="center">🔍 A multi-ecosystem package code review system. 🔍</p>
